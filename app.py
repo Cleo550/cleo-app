@@ -1,86 +1,90 @@
 import streamlit as st
-import urllib.parse
+from PIL import Image, ImageDraw, ImageFont
+import io
 from datetime import datetime
-import calendar
 
-st.set_page_config(page_title="Cleo Pro", page_icon="🧹")
+# --- DATOS FISCALES ---
+NOMBRE_LEGAL = "Sandra Ramírez Gálvez"
+DIRECCION = "Urb. Alkabir Bloque 5, El Campello"
 
-st.title("🧹 Gestión Cleo Servicio de Limpieza")
+st.set_page_config(page_title="Cleo App", page_icon="🧹")
 
-# --- CONFIGURACIÓN DE DATOS ---
-clientes_base = {
-    "Ania": {"tarifa": 13.0, "factura": False, "dias_semana": [0, 1]},
-    "Lola": {"tarifa": 14.0, "factura": True, "dias_semana": [2]},
-    "Yordhana": {"tarifa": 14.0, "factura": True, "dias_semana": [3]}
-}
-
-meses_nombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
-
-def contar_dias_mes(año, mes, dias_objetivo):
-    cal = calendar.Calendar()
-    semanas = cal.monthdays2calendar(año, mes)
-    contador = 0
-    for semana in semanas:
-        for dia, dia_semana in semana:
-            if dia != 0 and dia_semana in dias_objetivo:
-                contador += 1
-    return contador
-
-# --- PESTAÑAS ---
-tab1, tab2 = st.tabs(["💰 Cobros de este Mes", "📅 Previsión y Anual"])
-
-with tab1:
-    hoy = datetime.now()
-    mes_actual_nombre = meses_nombres[hoy.month - 1]
-    st.header(f"Facturación: {mes_actual_nombre}")
+def crear_imagen_factura(cliente, num, horas, tarifa, es_legal, mes):
+    # Crear un lienzo blanco (tamaño recibo)
+    img = Image.new('RGB', (600, 800), color=(255, 255, 255))
+    d = ImageDraw.Draw(img)
     
-    for nombre, datos in clientes_base.items():
-        with st.expander(f"👤 {nombre}", expanded=True):
-            d_auto = contar_dias_mes(hoy.year, hoy.month, datos["dias_semana"])
-            c1, c2 = st.columns(2)
-            with c1:
-                n_dias = st.number_input(f"Días ({nombre})", value=d_auto, key=f"now_{nombre}")
-                h_dia = st.number_input(f"Horas/día ({nombre})", value=4.0, step=0.5, key=f"hnow_{nombre}")
-            
-            total = n_dias * h_dia * datos["tarifa"]
-            with c2:
-                st.metric("Total", f"{total:.2f} €")
-                if datos["factura"]:
-                    st.caption(f"IRPF: {total*0.20:.2f} €")
-            
-            # Botón WhatsApp
-            msg = urllib.parse.quote(f"Hola {nombre}, resumen de {mes_actual_nombre}: {n_dias} días de {h_dia}h. Total: {total:.2f}€. ¡Gracias!")
-            st.markdown(f'<a href="https://wa.me/?text={msg}" target="_blank" style="text-decoration:none;"><div style="background-color:#25D366; color:white; padding:8px; text-align:center; border-radius:5px;">📲 Enviar WhatsApp</div></a>', unsafe_allow_html=True)
+    # Colores y fuentes (simuladas con trazos básicos)
+    color_texto = (0, 0, 0)
+    color_azul = (0, 51, 102)
+    
+    # Encabezado
+    d.text((40, 40), "CLEO SERVICIO DE LIMPIEZA", fill=color_azul)
+    d.text((40, 70), f"{NOMBRE_LEGAL}", fill=color_texto)
+    d.text((40, 90), f"{DIRECCION}", fill=color_texto)
+    
+    # Título Recibo
+    titulo = f"FACTURA: {num}" if es_legal else f"BONO DE SERVICIO: {mes.upper()}"
+    d.rectangle([40, 140, 560, 180], outline=color_azul, width=2)
+    d.text((200, 150), titulo, fill=color_azul)
+    
+    # Cuerpo
+    d.text((40, 220), f"FECHA: {datetime.now().strftime('%d/%m/%Y')}", fill=color_texto)
+    d.text((40, 250), f"CLIENTE: {cliente}", fill=color_texto)
+    
+    # Tabla de conceptos
+    d.line([(40, 300), (560, 300)], fill=color_texto, width=2)
+    d.text((50, 320), "CONCEPTO", fill=color_texto)
+    d.text((400, 320), "TOTAL", fill=color_texto)
+    d.line([(40, 350), (560, 350)], fill=color_texto, width=1)
+    
+    total_bruto = horas * tarifa
+    d.text((50, 370), f"Servicio Limpieza {mes} ({horas}h x {tarifa}€)", fill=color_texto)
+    d.text((420, 370), f"{total_bruto:.2f} €", fill=color_texto)
+    
+    if es_legal:
+        irpf = total_bruto * 0.20
+        total_final = total_bruto - irpf
+        d.text((300, 450), "Retención IRPF (20%):", fill=color_texto)
+        d.text((480, 450), f"-{irpf:.2f} €", fill=color_texto)
+        d.line([(300, 480), (560, 480)], fill=color_texto, width=2)
+        d.text((300, 500), "TOTAL A COBRAR:", fill=color_azul)
+        d.text((480, 500), f"{total_final:.2f} €", fill=color_azul)
+    else:
+        d.line([(300, 430), (560, 430)], fill=color_texto, width=2)
+        d.text((300, 450), "TOTAL NETO:", fill=color_azul)
+        d.text((480, 450), f"{total_bruto:.2f} €", fill=color_azul)
 
-with tab2:
-    st.header("Planificador")
-    
-    # Elegir mes
-    mes_sel = st.selectbox("Elige un mes para consultar:", meses_nombres, index=datetime.now().month - 1)
-    num_mes_sel = meses_nombres.index(mes_sel) + 1
-    
-    st.subheader(f"Estimación para {mes_sel}")
-    total_estimado_mes = 0
-    for nombre, datos in clientes_base.items():
-        d_mes = contar_dias_mes(datetime.now().year, num_mes_sel, datos["dias_semana"])
-        subtotal = d_mes * 4.0 * datos["tarifa"] # 4h por defecto
-        total_estimado_mes += subtotal
-        st.write(f"**{nombre}:** {d_mes} días → {subtotal:.2f} €")
-    
-    st.info(f"**Total estimado en {mes_sel}: {total_estimado_mes:.2f} €**")
-    
-    st.divider()
-    
-    # Previsión Anual
-    st.subheader(f"📊 Resumen Anual {datetime.now().year}")
-    total_anual = 0
-    for m in range(1, 13):
-        for nombre, datos in clientes_base.items():
-            d_m = contar_dias_mes(datetime.now().year, m, datos["dias_semana"])
-            total_anual += (d_m * 4.0 * datos["tarifa"])
-    
-    st.success(f"### Previsión Anual Total: {total_anual:.2f} €")
-    st.caption("Nota: El cálculo anual asume 4 horas por día trabajado.")
+    # Convertir a formato que Streamlit pueda mostrar
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format='PNG')
+    return img_byte_arr.getvalue()
 
-st.divider()
-st.caption("Cleo v3.0 | Gestión Profesional")
+st.title("🧹 Generador de Facturas (Imagen)")
+
+# --- INTERFAZ ---
+cliente = st.selectbox("¿Para quién es la factura?", ["Ania", "Lola", "Yordhana"])
+es_factura = cliente != "Ania"
+
+col1, col2 = st.columns(2)
+with col1:
+    num_f = st.text_input("Número de factura", value="2026-003") if es_factura else "BONO"
+    horas_m = st.number_input("Horas totales del mes", value=16.0)
+with col2:
+    mes_f = st.selectbox("Mes", ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"], index=datetime.now().month-1)
+    tarifa_f = 14.0 if es_factura else 13.0
+
+if st.button("🖼️ GENERAR IMAGEN"):
+    imagen_final = crear_imagen_factura(cliente, num_f, horas_m, tarifa_f, es_factura, mes_f)
+    
+    # Mostrar la imagen en la app para ver cómo queda
+    st.image(imagen_final, caption="Previsualización de la factura")
+    
+    # Botón para descargar la imagen al móvil
+    st.download_button(
+        label="📥 Guardar imagen en el móvil",
+        data=imagen_final,
+        file_name=f"Factura_{cliente}_{mes_f}.png",
+        mime="image/png"
+    )
+    st.success("¡Imagen creada! Guárdala y envíala por WhatsApp.")
