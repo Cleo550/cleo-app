@@ -1,85 +1,63 @@
 import streamlit as st
 import urllib.parse
 from datetime import datetime
+import calendar
 
-# Configuración de la página
-st.set_page_config(page_title="Cleo App", page_icon="🧹")
+st.set_page_config(page_title="Cleo Gestión Mensual", page_icon="🧹")
 
-# Estilo para botones grandes y claros
-st.markdown("""
-    <style>
-    .stButton>button {
-        width: 100%;
-        height: 3em;
-        font-size: 18px;
-        font-weight: bold;
-        border-radius: 10px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+st.title("🧹 Cleo: Gestión Mensual")
 
-st.title("🧹 Cleo Servicio de Limpieza")
-
-# --- LÓGICA DE DÍA ---
-dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-hoy_num = datetime.now().weekday()
-dia_hoy = dias_semana[hoy_num]
-
-# --- DATOS DE CLIENTES ---
-# Configuramos quién tiene factura y quién no según tus notas
-clientes = {
-    "Ania": {"tarifa": 13.0, "factura": False},
-    "Lola": {"tarifa": 14.0, "factura": True},
-    "Yordhana": {"tarifa": 14.0, "factura": True}
+# --- CONFIGURACIÓN BASE (Tus datos) ---
+clientes_base = {
+    "Ania": {"tarifa": 13.0, "factura": False, "dias_semana": [0, 1]}, # 0=Lunes, 1=Martes
+    "Lola": {"tarifa": 14.0, "factura": True, "dias_semana": [2]},    # 2=Miércoles
+    "Yordhana": {"tarifa": 14.0, "factura": True, "dias_semana": [3]} # 3=Jueves
 }
 
-# Sugerir cliente según el día
-if hoy_num <= 1: sugerencia = "Ania"
-elif hoy_num == 2: sugerencia = "Lola"
-elif hoy_num == 3: sugerencia = "Yordhana"
-else: sugerencia = "Ania"
+# --- LÓGICA DEL MES ACTUAL ---
+hoy = datetime.now()
+mes_nombre = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][hoy.month - 1]
+st.subheader(f"📅 Previsión para {mes_nombre} {hoy.year}")
 
-# --- CALCULADORA ---
-st.info(f"📅 Hoy es **{dia_hoy}**")
+def contar_dias_mes(año, mes, dias_objetivo):
+    cal = calendar.Calendar()
+    semanas = cal.monthdays2calendar(año, mes)
+    contador = 0
+    for semana in semanas:
+        for dia, dia_semana in semana:
+            if dia != 0 and dia_semana in dias_objetivo:
+                contador += 1
+    return contador
 
-cliente_sel = st.selectbox("Selecciona cliente:", list(clientes.keys()), index=list(clientes.keys()).index(sugerencia))
-horas = st.number_input("Horas trabajadas:", min_value=0.0, step=0.5, value=4.0)
-
-if st.button("CALCULAR JORNADA"):
-    tarifa = clientes[cliente_sel]["tarifa"]
-    total = horas * tarifa
-    
-    st.divider()
-    st.subheader(f"Total: {total:.2f} €")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        if clientes[cliente_sel]["factura"]:
-            irpf = total * 0.20
-            st.error(f"Hacienda (20%): {irpf:.2f} €")
-            neto = total - irpf
-        else:
-            st.success("Neto (Sin factura)")
-            neto = total
-            
-    with col2:
-        # Apartamos una pequeña parte para la hucha de jubilación (proporcional)
-        hucha_jubilacion = 2.27 
-        st.warning(f"Hucha 2051: {hucha_jubilacion:.2f} €")
+# --- INTERFAZ POR CLIENTE ---
+for nombre, datos in clientes_base.items():
+    with st.expander(f"👤 Factura {nombre}", expanded=True):
+        # Calculamos días automáticos
+        dias_auto = contar_dias_mes(hoy.year, hoy.month, datos["dias_semana"])
         
-    st.divider()
+        col1, col2 = st.columns(2)
+        with col1:
+            n_dias = st.number_input(f"Días de trabajo ({nombre})", value=dias_auto, key=f"dias_{nombre}")
+            horas_dia = st.number_input(f"Horas por día ({nombre})", value=4.0, step=0.5, key=f"horas_{nombre}")
+        
+        total_mensual = n_dias * horas_dia * datos["tarifa"]
+        
+        with col2:
+            st.metric("Total Mes", f"{total_mensual:.2f} €")
+            if datos["factura"]:
+                irpf = total_mensual * 0.20
+                st.caption(f"Separar IRPF: {irpf:.2f} €")
+                st.caption(f"Neto real: {total_mensual - irpf:.2f} €")
+            else:
+                st.caption("Cobro Neto (Sin factura)")
 
-    # --- BOTÓN DE WHATSAPP ---
-    texto_msg = f"Hola {cliente_sel}, hoy han sido {horas} horas. El total es de {total:.2f}€. ¡Un saludo!"
-    msg_url = urllib.parse.quote(texto_msg)
-    
-    st.markdown(f"""
-        <a href="https://wa.me/?text={msg_url}" target="_blank" style="text-decoration:none;">
-            <div style="background-color:#25D366; color:white; padding:15px; text-align:center; border-radius:10px; font-weight:bold; font-size:18px;">
-                📲 Enviar por WhatsApp
-            </div>
-        </a>
-        """, unsafe_allow_html=True)
+        # Botón WhatsApp Mensual
+        texto_wa = f"Hola {nombre}, este es el resumen de {mes_nombre}: {n_dias} días de {horas_dia}h. Total: {total_mensual:.2f}€. ¡Gracias!"
+        msg_url = urllib.parse.quote(texto_wa)
+        st.markdown(f"""<a href="https://wa.me/?text={msg_url}" target="_blank" style="text-decoration:none;">
+            <div style="background-color:#25D366; color:white; padding:8px; text-align:center; border-radius:5px; font-size:14px;">
+                📲 Enviar factura {mes_nombre}
+            </div></a>""", unsafe_allow_html=True)
 
 st.divider()
-st.caption("Cleo v1.0 | El Campello")
+st.caption("Cleo v2.0 - Cobro por adelantado")
