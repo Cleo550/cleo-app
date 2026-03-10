@@ -16,4 +16,12 @@ CLIS = {
 st.title("Gestion de Facturacion Cleo")
 
 cn = st.selectbox("Selecciona Cliente", list(CLIS.keys()))
-meses = ["Enero", "
+# REPARADO ERROR LINEA 19 (Dividido para evitar cortes)
+meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
+         "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+mn = st.selectbox("Mes de servicio", meses, index=datetime.now().month-1)
+
+c = CLIS[cn]
+mi = meses.index(mn) + 1
+cal = calendar.Calendar()
+d_lista = [f"{d:02d}-{mi:02d}-2026" for s in cal.monthdays2calendar(2026, mi) for d, ds in s if d!=0 and ds in
