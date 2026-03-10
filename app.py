@@ -1,90 +1,92 @@
 import streamlit as st
-from PIL import Image, ImageDraw, ImageFont
-import io
+from fpdf import FPDF
 from datetime import datetime
+import calendar
+import io
 
-# --- DATOS FISCALES ---
-NOMBRE_LEGAL = "Sandra Ramírez Gálvez"
-DIRECCION = "Urb. Alkabir Bloque 5, El Campello"
+# --- DATOS FISCALES (Sandra Ramírez Gálvez) ---
+NOMBRE_EMISOR = "Sandra Ramírez Gálvez"
+NIF_EMISOR = "78217908Z"
+DIR_EMISOR = "Urb. Alkabir Blq 5, pta i, El Campello"
+POB_EMISOR = "03560 El Campello"
 
-st.set_page_config(page_title="Cleo App", page_icon="🧹")
+st.set_page_config(page_title="Cleo Pro", layout="centered")
 
-def crear_imagen_factura(cliente, num, horas, tarifa, es_legal, mes):
-    # Crear un lienzo blanco (tamaño recibo)
-    img = Image.new('RGB', (600, 800), color=(255, 255, 255))
-    d = ImageDraw.Draw(img)
+# --- DATOS CLIENTES ---
+clientes_fijo = {
+    "Lola": {"nombre": "María Dolores Albero Moya", "nif": "21422031S", "dir": "Calle Alcalde Ramón Orts Galán, 7 Bungalow 52", "pob": "03690 Sant Vicent del Raspeig", "tarifa": 14.0, "legal": True},
+    "Yordhana": {"nombre": "María de los Ángeles Yordhana Gómez Sánchez", "nif": "48361127Q", "dir": "Calle Santiago, 45", "pob": "03690 Sant Vicent del Raspeig", "tarifa": 14.0, "legal": True},
+    "Ania": {"nombre": "Ania Rogala", "nif": "", "dir": "Calle Confrides, 3, C.P.03560", "pob": "El Campello", "tarifa": 13.0, "legal": False}
+}
+
+# --- FUNCIÓN PARA CREAR EL DOCUMENTO ---
+def crear_documento(cli_key, n_fact, horas, mes_nombre):
+    cli = clientes_fijo[cli_key]
+    pdf = FPDF()
+    pdf.add_page()
     
-    # Colores y fuentes (simuladas con trazos básicos)
-    color_texto = (0, 0, 0)
-    color_azul = (0, 51, 102)
+    # Intentar poner tu logo.jpeg
+    try: pdf.image('logo.jpeg', 85, 10, 40)
+    except: pass
     
-    # Encabezado
-    d.text((40, 40), "CLEO SERVICIO DE LIMPIEZA", fill=color_azul)
-    d.text((40, 70), f"{NOMBRE_LEGAL}", fill=color_texto)
-    d.text((40, 90), f"{DIRECCION}", fill=color_texto)
+    pdf.set_font('Arial', 'B', 14)
+    pdf.set_y(45)
+    pdf.cell(0, 10, 'SERVICIO DE LIMPIEZA', 0, 1, 'C')
     
-    # Título Recibo
-    titulo = f"FACTURA: {num}" if es_legal else f"BONO DE SERVICIO: {mes.upper()}"
-    d.rectangle([40, 140, 560, 180], outline=color_azul, width=2)
-    d.text((200, 150), titulo, fill=color_azul)
-    
-    # Cuerpo
-    d.text((40, 220), f"FECHA: {datetime.now().strftime('%d/%m/%Y')}", fill=color_texto)
-    d.text((40, 250), f"CLIENTE: {cliente}", fill=color_texto)
-    
-    # Tabla de conceptos
-    d.line([(40, 300), (560, 300)], fill=color_texto, width=2)
-    d.text((50, 320), "CONCEPTO", fill=color_texto)
-    d.text((400, 320), "TOTAL", fill=color_texto)
-    d.line([(40, 350), (560, 350)], fill=color_texto, width=1)
-    
-    total_bruto = horas * tarifa
-    d.text((50, 370), f"Servicio Limpieza {mes} ({horas}h x {tarifa}€)", fill=color_texto)
-    d.text((420, 370), f"{total_bruto:.2f} €", fill=color_texto)
-    
-    if es_legal:
-        irpf = total_bruto * 0.20
-        total_final = total_bruto - irpf
-        d.text((300, 450), "Retención IRPF (20%):", fill=color_texto)
-        d.text((480, 450), f"-{irpf:.2f} €", fill=color_texto)
-        d.line([(300, 480), (560, 480)], fill=color_texto, width=2)
-        d.text((300, 500), "TOTAL A COBRAR:", fill=color_azul)
-        d.text((480, 500), f"{total_final:.2f} €", fill=color_azul)
+    # Recuadro Fecha/Número
+    pdf.set_font('Arial', '', 10)
+    pdf.set_xy(110, 15)
+    if cli["legal"]:
+        pdf.cell(50, 8, f'FACTURA Nº: {n_fact}', 1, 0, 'C')
+        pdf.cell(40, 8, f'FECHA: 01/{datetime.now().strftime("%m/%Y")}', 1, 1, 'C')
     else:
-        d.line([(300, 430), (560, 430)], fill=color_texto, width=2)
-        d.text((300, 450), "TOTAL NETO:", fill=color_azul)
-        d.text((480, 450), f"{total_bruto:.2f} €", fill=color_azul)
+        pdf.cell(90, 8, f'FECHA: 01/{datetime.now().strftime("%m/%Y")}', 1, 1, 'C')
 
-    # Convertir a formato que Streamlit pueda mostrar
-    img_byte_arr = io.BytesIO()
-    img.save(img_byte_arr, format='PNG')
-    return img_byte_arr.getvalue()
-
-st.title("🧹 Generador de Facturas (Imagen)")
-
-# --- INTERFAZ ---
-cliente = st.selectbox("¿Para quién es la factura?", ["Ania", "Lola", "Yordhana"])
-es_factura = cliente != "Ania"
-
-col1, col2 = st.columns(2)
-with col1:
-    num_f = st.text_input("Número de factura", value="2026-003") if es_factura else "BONO"
-    horas_m = st.number_input("Horas totales del mes", value=16.0)
-with col2:
-    mes_f = st.selectbox("Mes", ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"], index=datetime.now().month-1)
-    tarifa_f = 14.0 if es_factura else 13.0
-
-if st.button("🖼️ GENERAR IMAGEN"):
-    imagen_final = crear_imagen_factura(cliente, num_f, horas_m, tarifa_f, es_factura, mes_f)
+    # Bloque Emisor y Cliente
+    pdf.set_y(65)
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(95, 5, 'EMISOR', 0, 0)
+    pdf.cell(95, 5, 'CLIENTE', 0, 1)
     
-    # Mostrar la imagen en la app para ver cómo queda
-    st.image(imagen_final, caption="Previsualización de la factura")
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(95, 5, f'Nombre: {NOMBRE_EMISOR}', 0, 0)
+    pdf.cell(95, 5, f'Nombre: {cli["nombre"]}', 0, 1)
+    pdf.cell(95, 5, f'NIF: {NIF_EMISOR}', 0, 0)
+    pdf.cell(95, 5, f'NIF: {cli["nif"]}', 0, 1)
+    pdf.cell(95, 5, f'Dirección: {DIR_EMISOR}', 0, 0)
+    pdf.cell(95, 5, f'Dirección: {cli["dir"]}', 0, 1)
+    pdf.cell(95, 5, f'Población: {POB_EMISOR}', 0, 0)
+    pdf.cell(95, 5, f'Población: {cli["pob"]}', 0, 1)
+
+    # Tabla de servicios
+    pdf.ln(15)
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(80, 8, 'DESCRIPCIÓN', 1, 0, 'C')
+    pdf.cell(30, 8, 'HORAS', 1, 0, 'C')
+    pdf.cell(40, 8, 'PRECIO/H', 1, 0, 'C')
+    pdf.cell(40, 8, 'TOTAL', 1, 1, 'C')
     
-    # Botón para descargar la imagen al móvil
-    st.download_button(
-        label="📥 Guardar imagen en el móvil",
-        data=imagen_final,
-        file_name=f"Factura_{cliente}_{mes_f}.png",
-        mime="image/png"
-    )
-    st.success("¡Imagen creada! Guárdala y envíala por WhatsApp.")
+    total_bruto = horas * cli["tarifa"]
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(80, 8, f'Servicio limpieza {mes_nombre}', 1)
+    pdf.cell(30, 8, str(horas), 1, 0, 'C')
+    pdf.cell(40, 8, f'{cli["tarifa"]:.2f} €', 1, 0, 'C')
+    pdf.cell(40, 8, f'{total_bruto:.2f} €', 1, 1, 'C')
+
+    # Totales e IRPF
+    pdf.ln(5)
+    if cli["legal"]:
+        irpf = total_bruto * 0.20
+        pdf.cell(150, 8, 'Retención IRPF (20%)', 0, 0, 'R')
+        pdf.cell(40, 8, f'-{irpf:.2f} €', 1, 1, 'C')
+        pdf.set_font('Arial', 'B', 11)
+        pdf.cell(150, 10, 'TOTAL A PERCIBIR', 0, 0, 'R')
+        pdf.cell(40, 10, f'{total_bruto - irpf:.2f} €', 1, 1, 'C')
+        pdf.set_font('Arial', 'I', 8)
+        pdf.ln(5)
+        pdf.multi_cell(0, 4, 'Operación exenta de IVA según el Art. 20.Uno.22º de la Ley 37/1992.')
+    else:
+        pdf.set_font('Arial', 'B', 11)
+        pdf.cell(150, 10, 'TOTAL NETO', 0, 0, 'R')
+        pdf.cell(40, 10, f'{total_bruto:.2f} €', 1, 1,
+
