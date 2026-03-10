@@ -89,4 +89,3 @@ def crear_documento(cli_key, n_fact, horas, mes_nombre):
         pdf.set_font('Arial', 'B', 11)
         pdf.cell(150, 10, 'TOTAL NETO', 0, 0, 'R')
         pdf.cell(40, 10, f'{total_bruto:.2f} €', 1, 1,
-
