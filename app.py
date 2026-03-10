@@ -27,7 +27,6 @@ d_lista = [f"{d:02d}-{mi:02d}-2026" for s in cal.monthdays2calendar(2026, mi) fo
 st.write("### Selecciona los dias que VAS a trabajar")
 df = [f for f in d_lista if st.checkbox(f"Dia {f}", value=True)]
 
-# REPARADO ERROR LINEA 31
 ht = len(df) * c["h"]
 nf = st.text_input("Factura Numero", f"2026-00{mi}") if c["v"] else ""
 
@@ -46,7 +45,7 @@ if st.button("GENERAR DOCUMENTO FINAL"):
     draw.text((850, 50), tit, fill="black")
     draw.text((850, 80), f"FECHA: 01/{mi:02d}/2026", fill="black")
 
-    draw.text((70, 400), f"EMISOR\nSandra Ramirez Galvez\n78217908Z\nUrb. Alkabir Blq 5, pta i\n03560 El Campello", fill="black")
+    draw.text((70, 400), "EMISOR\nSandra Ramirez Galvez\n78217908Z\nUrb. Alkabir Blq 5, pta i\n03560 El Campello", fill="black")
     draw.text((650, 400), f"CLIENTE\n{c['n']}\nNIF: {c['f']}\n{c['d']}\n{c['p']}", fill="black")
 
     y = 700
@@ -78,4 +77,11 @@ if st.button("GENERAR DOCUMENTO FINAL"):
     draw.text((830, y+50), f"TOTAL A PAGAR: {total_f:.2f} Eur", "black")
 
     y_p = 1300
-    p_modo = f"FORMA DE PAGO: Transferencia o Bizum\nIBAN: ES16 0073 0100 5605 98
+    if c["v"]:
+        p_modo = "FORMA DE PAGO: Transferencia o Bizum"
+        # Actualizado con tu nuevo IBAN
+        iban = "IBAN: ES44 0182 0143 5202 0163 6882"
+        draw.text((70, y_p), p_modo, "black")
+        draw.text((70, y_p+30), iban, "black")
+    else:
+        draw.text((70, y_p
