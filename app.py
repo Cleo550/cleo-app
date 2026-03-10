@@ -3,9 +3,9 @@ from fpdf import FPDF
 from datetime import datetime
 import calendar
 
-st.set_page_config(page_title="Cleo Pro")
+st.set_page_config(page_title="Cleo Pro", layout="centered")
 
-# --- CONFIGURACION ---
+# --- CONFIGURACIÓN ---
 IBAN = "ES44 0182 0143 5202 0163 6882 o Bizum 654 422 330"
 CLIS = {
     "Lola": {"nom": "Maria Dolores Albero Moya", "nif": "21422031S", "dir": "Calle Alcalde Ramon Orts Galan, 7 B52", "pob": "03690 Sant Vicent", "tari": 14.0, "leg": True, "d": [2]},
@@ -22,18 +22,33 @@ def PDF_GEN(ck, nf, h_m, mn, a):
     pdf.add_page()
     try: pdf.image('logo.jpeg', 85, 10, 40)
     except: pass
-    pdf.set_font('Arial', 'B', 14); pdf.set_y(45); pdf.cell(0, 10, 'SERVICIO DE LIMPIEZA', 0, 1, 'C')
+    
+    pdf.set_font('Arial', 'B', 14); pdf.set_y(45)
+    pdf.cell(0, 10, 'SERVICIO DE LIMPIEZA', 0, 1, 'C')
+    
     pdf.set_font('Arial', '', 10); pdf.set_xy(110, 15)
     ms = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
     m_i = ms.index(mn)+1; fd = f"01/{m_i:02d}/{a}"
+    
     if c["leg"]:
-        pdf.cell(50, 8, f'FACTURA N: {nf}', 1, 0, 'C'); pdf.cell(40, 8, f'FECHA: {fd}', 1, 1, 'C')
-    else: pdf.cell(90, 8, f'FECHA: {fd}', 1, 1, 'C')
+        pdf.cell(50, 8, f'FACTURA N: {nf}', 1, 0, 'C')
+        pdf.cell(40, 8, f'FECHA: {fd}', 1, 1, 'C')
+    else:
+        pdf.cell(90, 8, f'FECHA: {fd}', 1, 1, 'C')
+    
     pdf.set_y(65); pdf.set_font('Arial', 'B', 9)
     pdf.cell(95, 5, 'EMISOR', 0, 0); pdf.cell(95, 5, 'CLIENTE', 0, 1); pdf.ln(5)
+    
     pdf.set_font('Arial', '', 9)
     pdf.cell(95, 5, 'Sandra Ramirez Galvez'); pdf.cell(95, 5, f'Nombre: {c["nom"]}', 0, 1)
     pdf.cell(95, 5, 'NIF: 78217908Z'); pdf.cell(95, 5, f'NIF: {c["nif"]}', 0, 1)
     pdf.cell(95, 5, 'Urb. Alkabir Blq 5, pta i'); pdf.cell(95, 5, f'Dir: {c["dir"]}', 0, 1)
     pdf.cell(95, 5, '03560 El Campello'); pdf.cell(95, 5, f'Pob: {c["pob"]}', 0, 1)
-    pdf.ln(10); pdf.set_
+    
+    pdf.ln(10); pdf.set_font('Arial', 'B', 9)
+    pdf.cell(70, 8, 'DESCRIPCION', 1, 0, 'C'); pdf.cell(35, 8, 'FECHAS', 1, 0, 'C'); pdf.cell(25, 8, 'HORAS', 1, 0, 'C'); pdf.cell(30, 8, 'PRECIO/H', 1, 0, 'C'); pdf.cell(30, 8, 'TOTAL', 1, 1, 'C')
+    
+    f_l = obtener_fechas(a, m_i, c["d"]); pdf.set_font('Arial', '', 8); h_d = h_m / len(f_l) if f_l else 0
+    for f in f_l:
+        pdf.cell(70, 6, f'Limpieza domicilio {mn}', 1); pdf.cell(35, 6, f, 1, 0, 'C')
+        pdf.cell(25, 6, f"{h_d:.1f}", 1, 0, 'C'); pdf.cell(30, 6, f'{c["tari"]:.2f} E',
