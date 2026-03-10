@@ -3,11 +3,10 @@ from fpdf import FPDF
 from datetime import datetime
 import calendar
 
-# --- DATOS FIJOS ---
-IBAN = "ES44 0182 0143 5202 0163 6882 o Bizum 654 422 330"
-
 st.set_page_config(page_title="Cleo Pro")
 
+# --- CONFIGURACION ---
+IBAN = "ES44 0182 0143 5202 0163 6882 o Bizum 654 422 330"
 CLIS = {
     "Lola": {"nom": "Maria Dolores Albero Moya", "nif": "21422031S", "dir": "Calle Alcalde Ramon Orts Galan, 7 B52", "pob": "03690 Sant Vicent", "tari": 14.0, "leg": True, "d": [2]},
     "Yordhana": {"nom": "Maria de los Angeles Yordhana Gomez Sanchez", "nif": "48361127Q", "dir": "Calle Santiago, 45", "pob": "03690 Sant Vicent", "tari": 14.0, "leg": True, "d": [3]},
@@ -34,4 +33,7 @@ def PDF_GEN(ck, nf, h_m, mn, a):
     pdf.cell(95, 5, 'EMISOR', 0, 0); pdf.cell(95, 5, 'CLIENTE', 0, 1); pdf.ln(5)
     pdf.set_font('Arial', '', 9)
     pdf.cell(95, 5, 'Sandra Ramirez Galvez'); pdf.cell(95, 5, f'Nombre: {c["nom"]}', 0, 1)
-    pdf.cell(95, 5, 'NIF: 7821
+    pdf.cell(95, 5, 'NIF: 78217908Z'); pdf.cell(95, 5, f'NIF: {c["nif"]}', 0, 1)
+    pdf.cell(95, 5, 'Urb. Alkabir Blq 5, pta i'); pdf.cell(95, 5, f'Dir: {c["dir"]}', 0, 1)
+    pdf.cell(95, 5, '03560 El Campello'); pdf.cell(95, 5, f'Pob: {c["pob"]}', 0, 1)
+    pdf.ln(10); pdf.set_
