@@ -43,4 +43,12 @@ def crear_documento(cli_key, n_fact, horas, mes_nombre, año):
     pdf.set_y(45)
     pdf.cell(0, 10, 'SERVICIO DE LIMPIEZA', 0, 1, 'C')
     
-    pdf.set_font('
+    pdf.set_font('Arial', '', 10)
+    pdf.set_xy(110, 15)
+    meses_n = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+    mes_num = meses_n.index(mes_nombre) + 1
+    fecha_doc = f"01/{mes_num:02d}/{año}"
+    
+    if cli["legal"]:
+        pdf.cell(50, 8,
+                
