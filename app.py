@@ -1,66 +1,61 @@
 import streamlit as st
+from PIL import Image, ImageDraw, ImageFont
 import calendar
-from datetime import datetime
+import io
 
 st.set_page_config(page_title="Cleo Pro")
-st.title("🧹 Cleo: Facturación Automática")
+st.title("🧹 Generador de Factura (Imagen)")
 
 # --- DATOS ---
 IBAN = "ES44 0182 0143 5202 0163 6882 o Bizum 654 422 330"
-MI_INFO = "Sandra Ramirez Galvez - 78217908Z\nUrb. Alkabir Blq 5, pta i, El Campello"
+LEY = "Exenta IVA Art. 20.Uno.22 Ley 37/1992. Directiva UE 2020/285."
 
 CLIS = {
-    "Lola": {"n": "Maria Dolores Albero Moya", "f": "21422031S", "d": "Calle Alcalde Ramon Orts Galan, 7 B52", "t": 14.0, "w": [2], "l": True},
-    "Yordhana": {"n": "Maria de los Angeles Yordhana Gomez Sanchez", "f": "48361127Q", "d": "Calle Santiago, 45", "t": 14.0, "w": [3], "l": True},
-    "Ania": {"n": "Ania Rogala", "f": "---", "d": "Calle Confrides, 3", "t": 13.0, "w": [0, 1], "l": False}
+    "Lola": {"n": "Maria Dolores Albero Moya", "f": "21422031S", "d": "Calle Alcalde Ramon Orts Galan, 7 B52", "t": 14.0, "w": [2]},
+    "Yordhana": {"n": "Maria de los Angeles Yordhana Gomez Sanchez", "f": "48361127Q", "d": "Calle Santiago, 45", "t": 14.0, "w": [3]},
+    "Ania": {"n": "Ania Rogala", "f": "---", "d": "Calle Confrides, 3", "t": 13.0, "w": [0, 1]}
 }
 
-# --- SELECCIÓN ---
-c_nom = st.selectbox("Cliente", list(CLIS.keys()))
-meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
-m_nom = st.selectbox("Mes", meses, index=datetime.now().month-1)
+# --- MENU ---
+C_S = st.selectbox("Cliente", list(CLIS.keys()))
+MSS = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+M_S = st.selectbox("Mes", MSS, index=2)
 
-# --- CÁLCULO AUTO ---
-m_idx = meses.index(m_nom) + 1
-c = CLIS[c_nom]
-cal = calendar.Calendar()
-fechas = [f"{d:02d}/{m_idx:02d}" for s in cal.monthdays2calendar(2026, m_idx) for d, ds in s if d != 0 and ds in c["w"]]
-
-st.success(f"Días detectados: {len(fechas)}")
+# --- CALCULO AUTOMATICO ---
+M_I = MSS.index(M_S) + 1
+C = CLIS[C_S]
+CAL = calendar.Calendar()
+DIAS = [f"{d:02d}/{M_I:02d}" for s in CAL.monthdays2calendar(2026, M_I) for d, ds in s if d != 0 and ds in C["w"]]
 
 col1, col2 = st.columns(2)
 with col1:
-    h_tot = st.number_input("Horas Totales", value=float(len(fechas)*4))
+    HT = st.number_input("Horas", value=float(len(DIAS)*4))
 with col2:
-    n_fac = st.text_input("N. Factura", "2026-003") if c["l"] else "BONO"
+    NF = st.text_input("N. Factura", "2026-003")
 
-# --- VISTA PREVIA ---
-total = h_tot * c["t"]
-recibo_texto = f"""
-FACTURA / RECIBO: {n_fac}
-FECHA: 01/{m_idx:02d}/2026
---------------------------------------
-EMISOR: {MI_INFO}
-CLIENTE: {c['n']}
-NIF: {c['f']}
---------------------------------------
-CONCEPTO: Limpieza domicilio {m_nom}
-DÍAS TRABAJADOS: {', '.join(fechas)}
-HORAS TOTALES: {h_tot}h
-PRECIO/HORA: {c['t']}€
---------------------------------------
-TOTAL NETO: {total:.2f}€
---------------------------------------
-PAGO: {IBAN if c_nom != 'Ania' else 'En Efectivo'}
-Exenta IVA Art. 20.Uno.22 Ley 37/1992
-"""
-
-st.text_area("Vista previa para copiar", recibo_texto, height=400)
-
-# --- BOTÓN WHATSAPP ---
-t_wa = f"Hola! Te envío el recibo de {m_nom}. Total: {total:.2f}e. Detalle: {n_fac}"
-url_wa = f"https://wa.me/?text={t_wa.replace(' ', '%20')}"
-
-if st.button("Enviar por WhatsApp"):
-    st.markdown(f'<a href="{url_wa}" target="_blank">📲 Abrir WhatsApp y enviar</a>', unsafe_allow_html=True)
-    st.info("Copia el texto del cuadro de arriba y pégalo en el chat.")
+if st.button("CREAR IMAGEN DE FACTURA"):
+    # Crear lienzo (Blanco, tamaño A4 aprox)
+    img = Image.new('RGB', (800, 1000), color=(255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    
+    # Dibujar diseño
+    draw.rectangle([0, 0, 800, 100], fill=(240, 240, 240)) # Franja arriba
+    draw.text((50, 40), "FACTURA DE SERVICIOS", fill=(0,0,0))
+    
+    # Bloque Datos
+    draw.text((50, 120), "EMISOR:\nSandra Ramirez Galvez\n78217908Z\nEl Campello, Alicante", fill=(0,0,0))
+    draw.text((450, 120), f"CLIENTE:\n{C['n']}\nNIF: {C['f']}\n{C['d']}", fill=(0,0,0))
+    
+    # Datos Factura
+    draw.text((50, 240), f"Factura N: {NF}      Fecha: 01/{M_I:02d}/2026", fill=(0,0,0))
+    
+    # Tabla
+    y = 300
+    draw.line([(50, y), (750, y)], fill=(0,0,0), width=2)
+    draw.text((50, y+10), "CONCEPTO             FECHAS           H      PRECIO      TOTAL", fill=(0,0,0))
+    draw.line([(50, y+40), (750, y+40)], fill=(0,0,0), width=1)
+    
+    y += 50
+    h_dia = HT / len(DIAS) if DIAS else 0
+    for f in DIAS:
+        t_l = h
