@@ -50,4 +50,37 @@ with tab1:
             
             # Botón WhatsApp
             msg = urllib.parse.quote(f"Hola {nombre}, resumen de {mes_actual_nombre}: {n_dias} días de {h_dia}h. Total: {total:.2f}€. ¡Gracias!")
-            st.markdown(f'<a href="https
+            st.markdown(f'<a href="https://wa.me/?text={msg}" target="_blank" style="text-decoration:none;"><div style="background-color:#25D366; color:white; padding:8px; text-align:center; border-radius:5px;">📲 Enviar WhatsApp</div></a>', unsafe_allow_html=True)
+
+with tab2:
+    st.header("Planificador")
+    
+    # Elegir mes
+    mes_sel = st.selectbox("Elige un mes para consultar:", meses_nombres, index=datetime.now().month - 1)
+    num_mes_sel = meses_nombres.index(mes_sel) + 1
+    
+    st.subheader(f"Estimación para {mes_sel}")
+    total_estimado_mes = 0
+    for nombre, datos in clientes_base.items():
+        d_mes = contar_dias_mes(datetime.now().year, num_mes_sel, datos["dias_semana"])
+        subtotal = d_mes * 4.0 * datos["tarifa"] # 4h por defecto
+        total_estimado_mes += subtotal
+        st.write(f"**{nombre}:** {d_mes} días → {subtotal:.2f} €")
+    
+    st.info(f"**Total estimado en {mes_sel}: {total_estimado_mes:.2f} €**")
+    
+    st.divider()
+    
+    # Previsión Anual
+    st.subheader(f"📊 Resumen Anual {datetime.now().year}")
+    total_anual = 0
+    for m in range(1, 13):
+        for nombre, datos in clientes_base.items():
+            d_m = contar_dias_mes(datetime.now().year, m, datos["dias_semana"])
+            total_anual += (d_m * 4.0 * datos["tarifa"])
+    
+    st.success(f"### Previsión Anual Total: {total_anual:.2f} €")
+    st.caption("Nota: El cálculo anual asume 4 horas por día trabajado.")
+
+st.divider()
+st.caption("Cleo v3.0 | Gestión Profesional")
