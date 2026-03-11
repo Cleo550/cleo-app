@@ -41,13 +41,7 @@ if "gh_datos" not in st.session_state or "gh_sha" not in st.session_state:
     st.session_state["gh_datos"] = datos
     st.session_state["gh_sha"] = sha
 
-# Boton para recargar datos manualmente si hace falta
-with st.sidebar:
-    if st.button("Recargar datos guardados"):
-        datos, sha = cargar_datos()
-        st.session_state["gh_datos"] = datos
-        st.session_state["gh_sha"] = sha
-        st.rerun()
+
 
 def get_dato(clave, defecto):
     return st.session_state["gh_datos"].get(clave, defecto)
