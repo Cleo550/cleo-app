@@ -35,11 +35,12 @@ def guardar_datos(datos, sha):
     except:
         pass
 
-# Cargar datos - siempre desde GitHub para garantizar persistencia
-if "gh_datos" not in st.session_state or "gh_sha" not in st.session_state:
+# Cargar datos desde GitHub siempre que se abre la app
+if "gh_cargado" not in st.session_state:
     datos, sha = cargar_datos()
     st.session_state["gh_datos"] = datos
     st.session_state["gh_sha"] = sha
+    st.session_state["gh_cargado"] = True
 
 
 
@@ -89,19 +90,14 @@ for cliente, datos in CLIS.items():
     key_dias = f"dias_{cliente}_{mi}_{anio}"
     valor_guardado = int(get_dato(key_dias, num_dias_defecto))
 
-    # Forzar que el widget arranque con el valor guardado
-    widget_key = f"widget_{key_dias}"
-    if widget_key not in st.session_state:
-        st.session_state[widget_key] = valor_guardado
-
     st.markdown(f"**{cliente}** · {datos['h']}h/dia · {datos['t']} EUR/h")
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
         num_dias = st.number_input(
             f"Dias trabajados {cliente}",
             min_value=0, max_value=31,
-            value=st.session_state[widget_key], step=1,
-            key=widget_key,
+            value=valor_guardado, step=1,
+            key=key_dias,
             label_visibility="collapsed"
         )
         st.caption(f"Dias segun calendario: {num_dias_defecto}")
