@@ -113,7 +113,6 @@ for cliente, datos in CLIS.items():
         st.caption(f"Dias segun calendario: {num_dias_defecto}")
         if num_dias != valor_guardado:
             set_dato(key_dias, num_dias)
-            st.session_state[widget_key] = num_dias
     with c2:
         st.write("")
         st.write(f"{num_dias} dias")
