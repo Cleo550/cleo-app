@@ -19,7 +19,6 @@ MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
 
 # ─── FUNCIÓN: calcular ingresos reales según calendario ───────────────────────
 def calcular_ingresos_mes(cliente_data, anio, mes_idx):
-    """Calcula los ingresos de un cliente para un mes/año concreto según días trabajados."""
     cal = calendar.Calendar()
     dias = [d for s in cal.monthdays2calendar(anio, mes_idx)
             for d, ds in s if d != 0 and ds in cliente_data["w"]]
@@ -45,7 +44,6 @@ for cliente, datos in CLIS.items():
     previsto = calcular_ingresos_mes(datos, anio, mi)
     c1, c2 = st.columns([2, 1])
     with c1:
-        # Mostrar cuántos días trabaja ese mes
         cal = calendar.Calendar()
         num_dias = len([d for s in cal.monthdays2calendar(anio, mi)
                         for d, ds in s if d != 0 and ds in datos["w"]])
