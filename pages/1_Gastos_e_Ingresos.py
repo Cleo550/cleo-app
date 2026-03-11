@@ -43,15 +43,13 @@ dias_trabajados = {}
 for cliente, datos in CLIS.items():
     dias_cal = calcular_dias_mes(datos, anio, mi)
     num_dias_defecto = len(dias_cal)
-
     st.markdown(f"**{cliente}** · {datos['h']}h/dia · {datos['t']} EUR/h")
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
         num_dias = st.number_input(
             f"Dias trabajados {cliente}",
             min_value=0, max_value=31,
-            value=num_dias_defecto,
-            step=1,
+            value=num_dias_defecto, step=1,
             key=f"dias_{cliente}_{mi}_{anio}",
             label_visibility="collapsed"
         )
@@ -63,7 +61,6 @@ for cliente, datos in CLIS.items():
         total_cliente = num_dias * datos["h"] * datos["t"]
         st.write("")
         st.write(f"**{total_cliente:.2f} EUR**")
-
     dias_trabajados[cliente] = num_dias
     ingresos_reales[cliente] = total_cliente
 
@@ -79,8 +76,6 @@ with c1:
         label_visibility="collapsed"
     )
     st.caption("Detalle (opcional)")
-with c2:
-    st.write("")
 with c3:
     otros_ingresos = st.number_input(
         "EUR otros",
@@ -91,7 +86,47 @@ with c3:
     )
     st.caption("Otros ingresos EUR")
 
-total_ingresos = sum(ingresos_reales.values()) + otros_ingresos
+# Ingresos extra añadidos
+if f"ingresos_extra_{mi}_{anio}" not in st.session_state:
+    st.session_state[f"ingresos_extra_{mi}_{anio}"] = []
+
+if st.session_state[f"ingresos_extra_{mi}_{anio}"]:
+    st.markdown("*Ingresos añadidos:*")
+    for idx, (nombre_i, importe_i) in enumerate(st.session_state[f"ingresos_extra_{mi}_{anio}"]):
+        c1, c2, c3 = st.columns([2, 1, 0.5])
+        with c1:
+            st.write(nombre_i)
+        with c2:
+            st.write(f"{importe_i:.2f} EUR")
+        with c3:
+            if st.button("X", key=f"del_ing_{idx}_{mi}_{anio}"):
+                st.session_state[f"ingresos_extra_{mi}_{anio}"].pop(idx)
+                st.rerun()
+
+st.markdown("---")
+c1, c2, c3 = st.columns([2, 1, 1])
+with c1:
+    ing_nombre = st.text_input("Nombre ingreso extra",
+                                placeholder="Ej: Trabajo extra",
+                                key=f"ing_nombre_{mi}_{anio}",
+                                label_visibility="collapsed")
+    st.caption("Nombre del ingreso")
+with c2:
+    ing_importe = st.number_input("Importe ingreso EUR",
+                                   min_value=0.0, max_value=5000.0,
+                                   value=0.0, step=1.0,
+                                   key=f"ing_extra_importe_{mi}_{anio}",
+                                   label_visibility="collapsed")
+    st.caption("Importe EUR")
+with c3:
+    st.write("")
+    if st.button("Añadir ingreso", key=f"btn_add_ing_{mi}_{anio}"):
+        if ing_nombre and ing_importe > 0:
+            st.session_state[f"ingresos_extra_{mi}_{anio}"].append((ing_nombre, ing_importe))
+            st.rerun()
+
+ingresos_extra_total = sum(v for _, v in st.session_state[f"ingresos_extra_{mi}_{anio}"])
+total_ingresos = sum(ingresos_reales.values()) + otros_ingresos + ingresos_extra_total
 st.metric("Total ingresos", f"{total_ingresos:.2f} EUR")
 
 st.divider()
@@ -138,6 +173,44 @@ for i, (nombre, (mensual, anual)) in enumerate(SOBRES_ANUALES.items()):
 
 total_anuales = sum(sobres_vals[k] for k in SOBRES_ANUALES)
 st.info(f"Total pagos anuales: {total_anuales:.2f} EUR/mes · Al año: {total_anuales*12:.2f} EUR")
+
+# Sobre extra Trade Republic
+if f"tr_extra_{mi}_{anio}" not in st.session_state:
+    st.session_state[f"tr_extra_{mi}_{anio}"] = []
+
+if st.session_state[f"tr_extra_{mi}_{anio}"]:
+    for idx, (nombre_t, importe_t) in enumerate(st.session_state[f"tr_extra_{mi}_{anio}"]):
+        c1, c2, c3 = st.columns([2, 1, 0.5])
+        with c1:
+            st.write(nombre_t)
+        with c2:
+            st.write(f"{importe_t:.2f} EUR")
+        with c3:
+            if st.button("X", key=f"del_tr_{idx}_{mi}_{anio}"):
+                st.session_state[f"tr_extra_{mi}_{anio}"].pop(idx)
+                st.rerun()
+        total_sobres += importe_t
+
+c1, c2, c3 = st.columns([2, 1, 1])
+with c1:
+    tr_nombre = st.text_input("Nombre sobre TR",
+                               placeholder="Ej: Nuevo ahorro",
+                               key=f"tr_nombre_{mi}_{anio}",
+                               label_visibility="collapsed")
+    st.caption("Nombre del sobre")
+with c2:
+    tr_importe = st.number_input("Importe TR EUR",
+                                  min_value=0.0, max_value=1000.0,
+                                  value=0.0, step=0.5,
+                                  key=f"tr_importe_{mi}_{anio}",
+                                  label_visibility="collapsed")
+    st.caption("Importe EUR/mes")
+with c3:
+    st.write("")
+    if st.button("Añadir sobre", key=f"btn_add_tr_{mi}_{anio}"):
+        if tr_nombre and tr_importe > 0:
+            st.session_state[f"tr_extra_{mi}_{anio}"].append((tr_nombre, tr_importe))
+            st.rerun()
 
 st.markdown("---")
 
@@ -191,6 +264,47 @@ with tab_bbva:
                 key=f"gf_{gasto}_{mi}_{anio}"
             )
             total_fijos += val
+
+    # BBVA extra añadidos
+    if f"bbva_extra_{mi}_{anio}" not in st.session_state:
+        st.session_state[f"bbva_extra_{mi}_{anio}"] = []
+
+    if st.session_state[f"bbva_extra_{mi}_{anio}"]:
+        st.markdown("*Gastos añadidos:*")
+        for idx, (nombre_b, importe_b) in enumerate(st.session_state[f"bbva_extra_{mi}_{anio}"]):
+            c1, c2, c3 = st.columns([2, 1, 0.5])
+            with c1:
+                st.write(nombre_b)
+            with c2:
+                st.write(f"{importe_b:.2f} EUR")
+            with c3:
+                if st.button("X", key=f"del_bbva_{idx}_{mi}_{anio}"):
+                    st.session_state[f"bbva_extra_{mi}_{anio}"].pop(idx)
+                    st.rerun()
+            total_fijos += importe_b
+
+    st.markdown("---")
+    c1, c2, c3 = st.columns([2, 1, 1])
+    with c1:
+        bbva_nombre = st.text_input("Nombre gasto BBVA",
+                                     placeholder="Ej: Recibo luz",
+                                     key=f"bbva_nombre_{mi}_{anio}",
+                                     label_visibility="collapsed")
+        st.caption("Nombre del gasto")
+    with c2:
+        bbva_importe = st.number_input("Importe BBVA EUR",
+                                        min_value=0.0, max_value=2000.0,
+                                        value=0.0, step=0.5,
+                                        key=f"bbva_importe_{mi}_{anio}",
+                                        label_visibility="collapsed")
+        st.caption("Importe EUR")
+    with c3:
+        st.write("")
+        if st.button("Añadir gasto BBVA", key=f"btn_add_bbva_{mi}_{anio}"):
+            if bbva_nombre and bbva_importe > 0:
+                st.session_state[f"bbva_extra_{mi}_{anio}"].append((bbva_nombre, bbva_importe))
+                st.rerun()
+
     st.metric("Total BBVA", f"{total_fijos:.2f} EUR")
 
 GASTOS_EXTRA_DEF = {
@@ -202,10 +316,6 @@ GASTOS_EXTRA_DEF = {
 
 with tab_efectivo:
     total_extras = 0.0
-
-    # Inicializar lista de gastos extra en session_state
-    if f"gastos_extra_{mi}_{anio}" not in st.session_state:
-        st.session_state[f"gastos_extra_{mi}_{anio}"] = []
 
     for gasto, importe in GASTOS_EXTRA_DEF.items():
         c1, c2 = st.columns([2, 1])
@@ -221,11 +331,12 @@ with tab_efectivo:
             )
             total_extras += val
 
-    # Mostrar gastos extra añadidos
-    gastos_extra_lista = st.session_state[f"gastos_extra_{mi}_{anio}"]
-    if gastos_extra_lista:
+    if f"gastos_extra_{mi}_{anio}" not in st.session_state:
+        st.session_state[f"gastos_extra_{mi}_{anio}"] = []
+
+    if st.session_state[f"gastos_extra_{mi}_{anio}"]:
         st.markdown("*Gastos añadidos:*")
-        for idx, (nombre_g, importe_g) in enumerate(gastos_extra_lista):
+        for idx, (nombre_g, importe_g) in enumerate(st.session_state[f"gastos_extra_{mi}_{anio}"]):
             c1, c2, c3 = st.columns([2, 1, 0.5])
             with c1:
                 st.write(nombre_g)
@@ -256,9 +367,7 @@ with tab_efectivo:
         st.write("")
         if st.button("Añadir", key=f"btn_add_{mi}_{anio}"):
             if extra_nombre and extra_importe > 0:
-                st.session_state[f"gastos_extra_{mi}_{anio}"].append(
-                    (extra_nombre, extra_importe)
-                )
+                st.session_state[f"gastos_extra_{mi}_{anio}"].append((extra_nombre, extra_importe))
                 st.rerun()
 
     st.metric("Total Efectivo", f"{total_extras:.2f} EUR")
@@ -284,18 +393,24 @@ with st.expander("Ver desglose completo"):
     if otros_ingresos > 0:
         detalle_txt = f" ({otros_detalle})" if otros_detalle else ""
         st.write(f"- Otros{detalle_txt}: {otros_ingresos:.2f} EUR")
+    for nombre_i, importe_i in st.session_state[f"ingresos_extra_{mi}_{anio}"]:
+        st.write(f"- {nombre_i}: {importe_i:.2f} EUR")
     st.write(f"**= Total ingresos: {total_ingresos:.2f} EUR**")
 
     st.markdown("---")
     st.markdown("**Trade Republic:**")
     st.write(f"- Pagos anuales: {total_anuales:.2f} EUR")
     st.write(f"- Pagos mensuales: {total_mensuales:.2f} EUR")
+    for nombre_t, importe_t in st.session_state[f"tr_extra_{mi}_{anio}"]:
+        st.write(f"- {nombre_t}: {importe_t:.2f} EUR")
     st.write(f"**= Total Trade Republic: {total_sobres:.2f} EUR**")
 
     st.markdown("---")
     st.markdown("**BBVA:**")
     for gasto, importe in GASTOS_BBVA.items():
         st.write(f"- {gasto}: {importe:.2f} EUR")
+    for nombre_b, importe_b in st.session_state[f"bbva_extra_{mi}_{anio}"]:
+        st.write(f"- {nombre_b}: {importe_b:.2f} EUR")
     st.write(f"**= Total BBVA: {total_fijos:.2f} EUR**")
 
     st.markdown("---")
@@ -318,16 +433,12 @@ for cliente, datos in CLIS.items():
     num_dias = dias_trabajados[cliente]
     total_c = ingresos_reales[cliente]
     dias_lista = calcular_dias_mes(datos, anio, mi)
-
-    # Ajustar lista de dias si el usuario cambio el numero
     if num_dias != len(dias_lista):
         dias_lista = dias_lista[:num_dias]
 
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
         st.write(f"**{cliente}** · {num_dias} dias · {total_c:.2f} EUR")
-    with c2:
-        st.write("")
     with c3:
         if st.button(f"Factura {cliente}", key=f"btn_fac_{cliente}_{mi}_{anio}"):
             st.session_state["factura_prefill"] = {
