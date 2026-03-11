@@ -7,7 +7,7 @@ st.set_page_config(page_title="Gastos e Ingresos - Cleo Pro", layout="centered")
 st.title("💰 Gastos e Ingresos")
 st.caption("Resumen mensual · Sistema de sobres")
 
-# ─── DATOS CLIENTES (igual que app.py) ────────────────────────────────────────
+# ─── DATOS CLIENTES ───────────────────────────────────────────────────────────
 CLIS = {
     "Ania":     {"t": 13.0, "h": 5.0, "w": [0, 1]},
     "Lola":     {"t": 14.0, "h": 4.0, "w": [2]},
@@ -79,27 +79,91 @@ st.divider()
 st.subheader("🗂️ Sistema de Sobres")
 st.caption("Aparta este dinero nada más cobrar. No lo toques.")
 
-SOBRES_FIJOS = {
-    "🏛️ Cuota Autónomo": 88.72,
-    "📋 IRPF": 67.00,
-    "🏦 Jubilación": 50.00,
+# Grupo 1: Seguros anuales (ahorro mensual = pago anual / 12)
+SOBRES_SEGUROS = {
+    "Seguro Coche":       25.0,
+    "Seguro Decesos":      6.0,
+    "RC Limpieza":         8.0,
+    "ITV":                 6.0,
+    "Imp. Circulación":   11.0,
+    "Amazon Prime":        5.0,
+    "Plex":                5.0,
+    "Regalos":            20.0,
+}
+
+# Grupo 2: Autónomo / IRPF
+SOBRES_AUTONOMO = {
+    "Cuota Autónomo": 88.72,
+    "IRPF":           67.00,
+}
+
+# Grupo 3: Jubilación
+SOBRES_JUBILACION = {
+    "Jubilación (Trade Republic)": 50.00,
 }
 
 total_sobres = 0.0
-cols = st.columns(len(SOBRES_FIJOS))
 sobres_vals = {}
-for i, (nombre, importe) in enumerate(SOBRES_FIJOS.items()):
-    with cols[i]:
+
+# --- Grupo 1 ---
+st.markdown("**📅 Seguros anuales** · *Aparta mensualmente para no sufrir el golpe*")
+cols = st.columns(4)
+for i, (nombre, importe) in enumerate(SOBRES_SEGUROS.items()):
+    with cols[i % 4]:
+        val = st.number_input(
+            nombre,
+            min_value=0.0, max_value=500.0,
+            value=importe, step=0.5,
+            key=f"sseg_{i}_{mi}_{anio}"
+        )
+        sobres_vals[nombre] = val
+        total_sobres += val
+        st.caption(f"📌 {val:.2f} €/mes")
+
+total_seguros = sum(sobres_vals[k] for k in SOBRES_SEGUROS)
+st.info(f"Total seguros: **{total_seguros:.2f} €/mes** · Al año: {total_seguros*12:.2f} €")
+
+st.markdown("---")
+
+# --- Grupo 2 ---
+st.markdown("**🏛️ Autónomo / IRPF**")
+cols2 = st.columns(2)
+for i, (nombre, importe) in enumerate(SOBRES_AUTONOMO.items()):
+    with cols2[i]:
         val = st.number_input(
             nombre,
             min_value=0.0, max_value=1000.0,
             value=importe, step=0.5,
-            key=f"sobre_{i}_{mi}_{anio}"
+            key=f"saut_{i}_{mi}_{anio}"
         )
         sobres_vals[nombre] = val
         total_sobres += val
-        st.caption(f"📌 {val:.2f} €")
+        st.caption(f"📌 {val:.2f} €/mes")
 
+total_autonomo = sum(sobres_vals[k] for k in SOBRES_AUTONOMO)
+st.info(f"Total autónomo/IRPF: **{total_autonomo:.2f} €/mes**")
+
+st.markdown("---")
+
+# --- Grupo 3 ---
+st.markdown("**🏦 Jubilación**")
+cols3 = st.columns(3)
+for i, (nombre, importe) in enumerate(SOBRES_JUBILACION.items()):
+    with cols3[i]:
+        val = st.number_input(
+            nombre,
+            min_value=0.0, max_value=1000.0,
+            value=importe, step=0.5,
+            key=f"sjub_{i}_{mi}_{anio}"
+        )
+        sobres_vals[nombre] = val
+        total_sobres += val
+        st.caption(f"📌 {val:.2f} €/mes")
+
+total_jubilacion = sum(sobres_vals[k] for k in SOBRES_JUBILACION)
+st.info(f"Total jubilación: **{total_jubilacion:.2f} €/mes** · En 1 año: {total_jubilacion*12:.2f} €")
+
+st.markdown("---")
 st.metric("🗂️ Total sobres a apartar", f"{total_sobres:.2f} €",
           delta=f"-{total_sobres:.2f} € de lo cobrado", delta_color="inverse")
 
@@ -112,9 +176,9 @@ tab_bbva, tab_efectivo = st.tabs(["BBVA", "Gastos Efectivo"])
 
 GASTOS_BBVA = {
     "Adeslas (seguro médico)": 30.27,
-    "Móvil Mamá": 29.90,
-    "Tinta HP": 7.99,
-    "Másmovil": 58.90,
+    "Móvil Mamá":              29.90,
+    "Tinta HP":                 7.99,
+    "Másmovil":                58.90,
 }
 
 with tab_bbva:
@@ -135,10 +199,10 @@ with tab_bbva:
     st.metric("Total BBVA", f"{total_fijos:.2f} €")
 
 GASTOS_EXTRA = {
-    "Gasolina": 70.0,
-    "Tabaco": 48.0,
+    "Gasolina":     70.0,
+    "Tabaco":       48.0,
     "Supermercado": 450.0,
-    "Terapeuta": 30.0,
+    "Terapeuta":    30.0,
 }
 
 with tab_efectivo:
@@ -192,8 +256,9 @@ with st.expander("🔍 Ver desglose completo"):
 
     st.markdown("---")
     st.markdown("**Sobres apartados:**")
-    for nombre, val in sobres_vals.items():
-        st.write(f"- {nombre}: {val:.2f} €")
+    st.write(f"*Seguros anuales:* {total_seguros:.2f} €")
+    st.write(f"*Autónomo/IRPF:* {total_autonomo:.2f} €")
+    st.write(f"*Jubilación:* {total_jubilacion:.2f} €")
     st.write(f"**= Total sobres: {total_sobres:.2f} €**")
 
     st.markdown("---")
