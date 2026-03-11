@@ -9,15 +9,14 @@ st.caption("Resumen mensual · Sistema de sobres")
 
 # ─── DATOS CLIENTES (igual que app.py) ────────────────────────────────────────
 CLIS = {
-    "Ania":     {"t": 13.0, "h": 5.0, "w": [0, 1]},   # lunes=0, martes=1
-    "Lola":     {"t": 14.0, "h": 4.0, "w": [2]},       # miércoles=2
-    "Yordhana": {"t": 14.0, "h": 4.0, "w": [3]},       # jueves=3
+    "Ania":     {"t": 13.0, "h": 5.0, "w": [0, 1]},
+    "Lola":     {"t": 14.0, "h": 4.0, "w": [2]},
+    "Yordhana": {"t": 14.0, "h": 4.0, "w": [3]},
 }
 
 MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
          "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
 
-# ─── FUNCIÓN: calcular ingresos reales según calendario ───────────────────────
 def calcular_ingresos_mes(cliente_data, anio, mes_idx):
     cal = calendar.Calendar()
     dias = [d for s in cal.monthdays2calendar(anio, mes_idx)
@@ -32,7 +31,7 @@ with col_anio:
     anio = st.number_input("📆 Año", min_value=2024, max_value=2035,
                            value=datetime.now().year, step=1)
 
-mi = MESES.index(mes_nombre) + 1  # 1-12
+mi = MESES.index(mes_nombre) + 1
 
 st.divider()
 
@@ -109,19 +108,18 @@ st.divider()
 # ─── SECCIÓN 3: GASTOS ────────────────────────────────────────────────────────
 st.subheader("💸 Gastos del mes")
 
-tab_fijos, tab_extras = st.tabs(["Gastos fijos", "Gastos extra (efectivo)"])
+tab_bbva, tab_efectivo = st.tabs(["BBVA", "Gastos Efectivo"])
 
-GASTOS_FIJOS = {
+GASTOS_BBVA = {
     "Adeslas (seguro médico)": 30.27,
-    "Móvil Mamá (Digi)": 29.90,
+    "Móvil Mamá": 29.90,
     "Tinta HP": 7.99,
-    "Digi (propio)": 3.00,
     "Másmovil": 58.90,
 }
 
-with tab_fijos:
+with tab_bbva:
     total_fijos = 0.0
-    for gasto, importe in GASTOS_FIJOS.items():
+    for gasto, importe in GASTOS_BBVA.items():
         c1, c2 = st.columns([2, 1])
         with c1:
             st.write(gasto)
@@ -134,7 +132,7 @@ with tab_fijos:
                 key=f"gf_{gasto}_{mi}_{anio}"
             )
             total_fijos += val
-    st.metric("Total gastos fijos", f"{total_fijos:.2f} €")
+    st.metric("Total BBVA", f"{total_fijos:.2f} €")
 
 GASTOS_EXTRA = {
     "Gasolina": 70.0,
@@ -143,7 +141,7 @@ GASTOS_EXTRA = {
     "Terapeuta": 30.0,
 }
 
-with tab_extras:
+with tab_efectivo:
     total_extras = 0.0
     for gasto, importe in GASTOS_EXTRA.items():
         c1, c2 = st.columns([2, 1])
@@ -168,7 +166,7 @@ with tab_extras:
     if extra_nombre and extra_importe > 0:
         total_extras += extra_importe
 
-    st.metric("Total gastos extra", f"{total_extras:.2f} €")
+    st.metric("Total Efectivo", f"{total_extras:.2f} €")
 
 total_gastos = total_fijos + total_extras
 
@@ -199,17 +197,17 @@ with st.expander("🔍 Ver desglose completo"):
     st.write(f"**= Total sobres: {total_sobres:.2f} €**")
 
     st.markdown("---")
-    st.markdown("**Gastos fijos:**")
-    for gasto, importe in GASTOS_FIJOS.items():
+    st.markdown("**BBVA:**")
+    for gasto, importe in GASTOS_BBVA.items():
         st.write(f"- {gasto}: {importe:.2f} €")
-    st.write(f"**= Total fijos: {total_fijos:.2f} €**")
+    st.write(f"**= Total BBVA: {total_fijos:.2f} €**")
 
     st.markdown("---")
-    st.write(f"**Gastos extra:** {total_extras:.2f} €")
+    st.write(f"**Gastos Efectivo:** {total_extras:.2f} €")
 
     st.markdown("---")
     st.write(f"**Ingresos:** {total_ingresos:.2f} €")
     st.write(f"**- Sobres:** -{total_sobres:.2f} €")
-    st.write(f"**- Gastos fijos:** -{total_fijos:.2f} €")
-    st.write(f"**- Gastos extra:** -{total_extras:.2f} €")
+    st.write(f"**- BBVA:** -{total_fijos:.2f} €")
+    st.write(f"**- Efectivo:** -{total_extras:.2f} €")
     st.write(f"**= 💚 Dinero libre: {neto_real:.2f} €**")
