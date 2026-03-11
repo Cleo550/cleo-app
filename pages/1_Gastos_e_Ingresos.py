@@ -70,7 +70,7 @@ c1, c2, c3 = st.columns([2, 1, 1])
 with c1:
     otros_detalle = st.text_input(
         "Detalle otros ingresos",
-        placeholder="Ej: Trabajo extra, Apuestas...",
+        placeholder="Ej: Trabajo extra",
         key=f"otros_detalle_{mi}_{anio}",
         label_visibility="collapsed"
     )
@@ -166,13 +166,13 @@ for i, (nombre, (mensual, anual)) in enumerate(SOBRES_ANUALES.items()):
             label_visibility="collapsed"
         )
         st.caption(f"Al año: {val_anual:.2f} EUR")
-        val_mes = round(val_anual / 12, 2)
-        st.number_input(
+        val_mes_calc = round(val_anual / 12, 2)
+        val_mes = st.number_input(
             f"Mensual {nombre}",
-            value=val_mes, step=0.5,
-            key=f"san_display_{i}_{mi}_{anio}",
-            label_visibility="collapsed",
-            disabled=True
+            min_value=0.0, max_value=500.0,
+            value=val_mes_calc, step=0.5,
+            key=f"san_{i}_{mi}_{anio}",
+            label_visibility="collapsed"
         )
         st.caption(f"{nombre}: {val_mes:.2f} EUR/mes")
         sobres_vals[nombre] = val_mes
