@@ -43,14 +43,17 @@ dias_trabajados = {}
 for cliente, datos in CLIS.items():
     dias_cal = calcular_dias_mes(datos, anio, mi)
     num_dias_defecto = len(dias_cal)
+    key_dias = f"dias_{cliente}_{mi}_{anio}"
+    if key_dias not in st.session_state:
+        st.session_state[key_dias] = num_dias_defecto
     st.markdown(f"**{cliente}** · {datos['h']}h/dia · {datos['t']} EUR/h")
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
         num_dias = st.number_input(
             f"Dias trabajados {cliente}",
             min_value=0, max_value=31,
-            value=num_dias_defecto, step=1,
-            key=f"dias_{cliente}_{mi}_{anio}",
+            value=st.session_state[key_dias], step=1,
+            key=key_dias,
             label_visibility="collapsed"
         )
         st.caption(f"Dias segun calendario: {num_dias_defecto}")
@@ -66,30 +69,11 @@ for cliente, datos in CLIS.items():
 
 st.markdown("---")
 
-c1, c2, c3 = st.columns([2, 1, 1])
-with c1:
-    otros_detalle = st.text_input(
-        "Detalle otros ingresos",
-        placeholder="Ej: Trabajo extra",
-        key=f"otros_detalle_{mi}_{anio}",
-        label_visibility="collapsed"
-    )
-    st.caption("Detalle (opcional)")
-with c3:
-    otros_ingresos = st.number_input(
-        "EUR otros",
-        min_value=0.0, max_value=5000.0,
-        value=0.0, step=1.0,
-        label_visibility="collapsed",
-        key=f"ing_otros_{mi}_{anio}"
-    )
-    st.caption("Otros ingresos EUR")
-
 if f"ingresos_extra_{mi}_{anio}" not in st.session_state:
     st.session_state[f"ingresos_extra_{mi}_{anio}"] = []
 
 if st.session_state[f"ingresos_extra_{mi}_{anio}"]:
-    st.markdown("*Ingresos añadidos:*")
+    st.markdown("*Otros ingresos añadidos:*")
     for idx, (nombre_i, importe_i) in enumerate(st.session_state[f"ingresos_extra_{mi}_{anio}"]):
         c1, c2, c3 = st.columns([2, 1, 0.5])
         with c1:
@@ -101,14 +85,13 @@ if st.session_state[f"ingresos_extra_{mi}_{anio}"]:
                 st.session_state[f"ingresos_extra_{mi}_{anio}"].pop(idx)
                 st.rerun()
 
-st.markdown("---")
 c1, c2, c3 = st.columns([2, 1, 1])
 with c1:
-    ing_nombre = st.text_input("Nombre ingreso extra",
-                                placeholder="Ej: Trabajo extra",
+    ing_nombre = st.text_input("Otros ingresos",
+                                placeholder="Otros ingresos",
                                 key=f"ing_nombre_{mi}_{anio}",
                                 label_visibility="collapsed")
-    st.caption("Nombre del ingreso")
+    st.caption("Otros ingresos")
 with c2:
     ing_importe = st.number_input("Importe ingreso EUR",
                                    min_value=0.0, max_value=5000.0,
@@ -124,7 +107,7 @@ with c3:
             st.rerun()
 
 ingresos_extra_total = sum(v for _, v in st.session_state[f"ingresos_extra_{mi}_{anio}"])
-total_ingresos = sum(ingresos_reales.values()) + otros_ingresos + ingresos_extra_total
+total_ingresos = sum(ingresos_reales.values()) + ingresos_extra_total
 st.metric("Total ingresos", f"{total_ingresos:.2f} EUR")
 
 st.divider()
@@ -392,9 +375,7 @@ with st.expander("Ver desglose completo"):
     st.markdown("**Ingresos por cliente:**")
     for cliente, val in ingresos_reales.items():
         st.write(f"- {cliente} ({dias_trabajados[cliente]} dias): {val:.2f} EUR")
-    if otros_ingresos > 0:
-        detalle_txt = f" ({otros_detalle})" if otros_detalle else ""
-        st.write(f"- Otros{detalle_txt}: {otros_ingresos:.2f} EUR")
+
     for nombre_i, importe_i in st.session_state[f"ingresos_extra_{mi}_{anio}"]:
         st.write(f"- {nombre_i}: {importe_i:.2f} EUR")
     st.write(f"**= Total ingresos: {total_ingresos:.2f} EUR**")
