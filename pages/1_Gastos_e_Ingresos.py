@@ -66,7 +66,6 @@ for cliente, datos in CLIS.items():
 
 st.markdown("---")
 
-# Otros ingresos con detalle
 c1, c2, c3 = st.columns([2, 1, 1])
 with c1:
     otros_detalle = st.text_input(
@@ -86,7 +85,6 @@ with c3:
     )
     st.caption("Otros ingresos EUR")
 
-# Ingresos extra añadidos
 if f"ingresos_extra_{mi}_{anio}" not in st.session_state:
     st.session_state[f"ingresos_extra_{mi}_{anio}"] = []
 
@@ -135,15 +133,16 @@ st.divider()
 st.subheader("Trade Republic")
 st.caption("Aparta este dinero nada mas cobrar. No lo toques.")
 
+# nombre: (mensual_defecto, anual_defecto)
 SOBRES_ANUALES = {
-    "Seguro Coche":     (25.0, 300.0),
-    "Seguro Decesos":   (6.0,  65.0),
-    "RC Limpieza":      (8.0,  93.41),
-    "ITV":              (6.0,  70.0),
-    "Imp. Circulacion": (11.0, 129.0),
-    "Amazon Prime":     (5.0,  49.9),
-    "Plex":             (5.0,  60.0),
-    "Regalos":          (20.0, 240.0),
+    "Seguro Coche":     (25.0,  300.0),
+    "Seguro Decesos":   (6.0,   65.0),
+    "RC Limpieza":      (8.0,   82.72),
+    "ITV":              (6.0,   70.0),
+    "Imp. Circulacion": (11.0,  129.0),
+    "Amazon Prime":     (5.0,   49.9),
+    "Plex":             (5.0,   60.0),
+    "Regalos":          (20.0,  240.0),
 }
 
 SOBRES_MENSUALES = {
@@ -155,26 +154,33 @@ SOBRES_MENSUALES = {
 total_sobres = 0.0
 sobres_vals = {}
 
-# Pagos anuales
 st.markdown("**Pagos anuales** - Ahorra mensualmente para no sufrir el golpe")
 cols = st.columns(4)
 for i, (nombre, (mensual, anual)) in enumerate(SOBRES_ANUALES.items()):
     with cols[i % 4]:
-        val = st.number_input(
-            nombre,
-            min_value=0.0, max_value=500.0,
-            value=mensual, step=0.5,
-            key=f"san_{i}_{mi}_{anio}"
+        val_anual = st.number_input(
+            f"Anual {nombre}",
+            min_value=0.0, max_value=2000.0,
+            value=anual, step=0.5,
+            key=f"anual_{i}_{mi}_{anio}",
+            label_visibility="collapsed"
         )
-        sobres_vals[nombre] = val
-        total_sobres += val
-        st.caption(f"{val:.2f} EUR/mes")
-        st.caption(f"Al año: {anual:.2f} EUR")
+        st.caption(f"Al año: {val_anual:.2f} EUR")
+        val_mes = round(val_anual / 12, 2)
+        st.number_input(
+            f"Mensual {nombre}",
+            value=val_mes, step=0.5,
+            key=f"san_display_{i}_{mi}_{anio}",
+            label_visibility="collapsed",
+            disabled=True
+        )
+        st.caption(f"{nombre}: {val_mes:.2f} EUR/mes")
+        sobres_vals[nombre] = val_mes
+        total_sobres += val_mes
 
 total_anuales = sum(sobres_vals[k] for k in SOBRES_ANUALES)
 st.info(f"Total pagos anuales: {total_anuales:.2f} EUR/mes · Al año: {total_anuales*12:.2f} EUR")
 
-# Sobre extra Trade Republic
 if f"tr_extra_{mi}_{anio}" not in st.session_state:
     st.session_state[f"tr_extra_{mi}_{anio}"] = []
 
@@ -213,8 +219,6 @@ with c3:
             st.rerun()
 
 st.markdown("---")
-
-# Pagos mensuales
 st.markdown("**Pagos mensuales**")
 cols2 = st.columns(3)
 for i, (nombre, importe) in enumerate(SOBRES_MENSUALES.items()):
@@ -265,7 +269,6 @@ with tab_bbva:
             )
             total_fijos += val
 
-    # BBVA extra añadidos
     if f"bbva_extra_{mi}_{anio}" not in st.session_state:
         st.session_state[f"bbva_extra_{mi}_{anio}"] = []
 
@@ -316,7 +319,6 @@ GASTOS_EXTRA_DEF = {
 
 with tab_efectivo:
     total_extras = 0.0
-
     for gasto, importe in GASTOS_EXTRA_DEF.items():
         c1, c2 = st.columns([2, 1])
         with c1:
@@ -399,7 +401,7 @@ with st.expander("Ver desglose completo"):
 
     st.markdown("---")
     st.markdown("**Trade Republic:**")
-    st.write(f"- Pagos anuales: {total_anuales:.2f} EUR")
+    st.write(f"- Pagos anuales: {total_anuales:.2f} EUR/mes")
     st.write(f"- Pagos mensuales: {total_mensuales:.2f} EUR")
     for nombre_t, importe_t in st.session_state[f"tr_extra_{mi}_{anio}"]:
         st.write(f"- {nombre_t}: {importe_t:.2f} EUR")
