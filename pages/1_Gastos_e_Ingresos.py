@@ -432,27 +432,3 @@ with st.expander("Ver desglose completo"):
 
 st.divider()
 
-# --- SECCION 5: LANZADERA DE FACTURAS ---
-st.subheader("Generar facturas")
-st.caption("Revisa los dias trabajados arriba y pulsa el boton del cliente para generar su factura.")
-
-for cliente, datos in CLIS.items():
-    num_dias = dias_trabajados[cliente]
-    total_c = ingresos_reales[cliente]
-    dias_lista = calcular_dias_mes(datos, anio, mi)
-    if num_dias != len(dias_lista):
-        dias_lista = dias_lista[:num_dias]
-
-    c1, c2, c3 = st.columns([2, 1, 1])
-    with c1:
-        st.write(f"**{cliente}** · {num_dias} dias · {total_c:.2f} EUR")
-    with c3:
-        if st.button(f"Factura {cliente}", key=f"btn_fac_{cliente}_{mi}_{anio}"):
-            st.session_state["factura_prefill"] = {
-                "cliente": cliente,
-                "mes": mes_nombre,
-                "anio": int(anio),
-                "dias": dias_lista,
-                "num_dias": num_dias,
-            }
-            st.switch_page("pages/0_Facturacion.py")
