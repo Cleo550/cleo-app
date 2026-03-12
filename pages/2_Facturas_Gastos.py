@@ -12,10 +12,10 @@ def get_supabase():
 supabase = get_supabase()
 
 TRIMESTRES = {
-    "T1 - Enero/Febrero/Marzo":       "T1",
-    "T2 - Abril/Mayo/Junio":          "T2",
-    "T3 - Julio/Agosto/Septiembre":   "T3",
-    "T4 - Octubre/Noviembre/Diciembre":"T4",
+    "T1 · Enero - Marzo":        "T1",
+    "T2 · Abril - Junio":        "T2",
+    "T3 · Julio - Septiembre":   "T3",
+    "T4 · Octubre - Diciembre":  "T4",
 }
 
 st.title("Facturas Gastos")
@@ -60,26 +60,27 @@ if st.button("💾 Guardar factura", type="primary", use_container_width=True):
                 "importe": importe,
                 "archivo_url": url
             }).execute()
-            st.success("Factura guardada correctamente")
+            st.success("✅ Factura guardada correctamente")
             st.rerun()
         except Exception as e:
-            st.error(f"Error al guardar: {e}")
+            st.error(f"❌ Error al guardar: {e}")
     else:
-        st.warning("Rellena el concepto, el importe y adjunta un archivo.")
+        st.warning("⚠️ Rellena el concepto, el importe y adjunta un archivo.")
 
 st.markdown("---")
 
 # --- LISTADO DE FACTURAS ---
-st.subheader(f"Facturas {trimestre_nombre} · {int(anio)}")
+st.subheader(f"Facturas guardadas · {trimestre_nombre} · {int(anio)}")
 
-try:
-    r = supabase.table("facturas_gastos").select("*").eq("trimestre", clave_trim).order("creado_en").execute()
-    facturas = r.data
-except:
-    facturas = []
+with st.spinner("Cargando facturas..."):
+    try:
+        r = supabase.table("facturas_gastos").select("*").eq("trimestre", clave_trim).order("creado_en").execute()
+        facturas = r.data
+    except:
+        facturas = []
 
 if not facturas:
-    st.info("No hay facturas registradas para este trimestre.")
+    st.info("No hay facturas registradas para este trimestre todavía.")
 else:
     total = 0.0
     for f in facturas:
