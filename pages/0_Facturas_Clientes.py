@@ -3,6 +3,8 @@ from PIL import Image, ImageDraw, ImageFont
 import calendar
 from datetime import datetime
 import io
+import json
+from supabase import create_client
 
 st.set_page_config(page_title="Facturas Clientes - Cleo Pro", layout="centered")
 
@@ -177,10 +179,13 @@ with col_a:
 cn = st.session_state["cliente_sel"]
 c = CLIS[cn]
 
-# Dias por defecto segun calendario
-dias_defecto = calcular_dias(c, anio, mi)
+# Dias: leer de Supabase (numero guardado) y convertir a lista de fechas
+dias_cal = calcular_dias(c, anio, mi)
+key_dias_supabase = f"dias_{cn}_{mi}_{anio}"
+num_dias_guardado = int(get_dato(key_dias_supabase, len(dias_cal)))
+dias_defecto = dias_cal[:num_dias_guardado] if num_dias_guardado <= len(dias_cal) else dias_cal
 
-# Clave para guardar dias modificados
+# Clave para guardar dias modificados en sesion
 key_dias_mod = f"dias_mod_{cn}_{mi}_{anio}"
 if key_dias_mod not in st.session_state:
     st.session_state[key_dias_mod] = dias_defecto.copy()
