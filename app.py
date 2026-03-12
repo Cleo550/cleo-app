@@ -22,7 +22,9 @@ def calcular_dias(cliente_data, anio, mes_idx):
             for s in cal.monthdays2calendar(int(anio), mes_idx)
             for d, ds in s if d != 0 and ds in cliente_data["w"]]
 
-def generar_imagen(cn, c, mi, anio, dias, num_factura):
+def generar_imagen(cn, c, mi, anio, dias, num_factura, lineas_extra=None):
+    if lineas_extra is None:
+        lineas_extra = []
     W, H = 1240, 1754
     img = Image.new('RGB', (W, H), "white")
     draw = ImageDraw.Draw(img)
@@ -48,8 +50,11 @@ def generar_imagen(cn, c, mi, anio, dias, num_factura):
 
     # Numero factura y fecha (derecha)
     mn = MESES[mi - 1]
-    if c["v"] and num_factura:
-        draw.text((W - 380, y_after_logo), f"Nº Factura: {num_factura}", font=font_bold, fill="black")
+    if c["v"]:
+        texto_cab = f"Nº Factura: {num_factura}" if num_factura else "Nº Factura: "
+        draw.text((W - 380, y_after_logo), texto_cab, font=font_bold, fill="black")
+    else:
+        draw.text((W - 380, y_after_logo), "BONO MENSUAL", font=font_bold, fill="black")
     draw.text((W - 380, y_after_logo + 35), f"Fecha: 01/{mi:02d}/{int(anio)}", font=font_normal, fill="black")
 
     # Emisor y Cliente
@@ -83,6 +88,14 @@ def generar_imagen(cn, c, mi, anio, dias, num_factura):
         draw.line([(60, y+32), (W-60, y+32)], fill=(210,210,210))
         y += 45
 
+    # Lineas extra
+    for conc, precio in lineas_extra:
+        draw.text((cols[0]+10, y), conc, font=font_normal, fill=(80,80,80))
+        draw.text((cols[4]+10, y), f"{precio:+.2f} EUR", font=font_normal, fill=(180,0,0) if precio < 0 else (0,130,0))
+        draw.line([(60, y+32), (W-60, y+32)], fill=(210,210,210))
+        y += 45
+        tot_f += precio
+
     # Totales
     y += 20
     if c["v"]:
@@ -103,6 +116,8 @@ def generar_imagen(cn, c, mi, anio, dias, num_factura):
         draw.text((60, y_pie+60), "Bizum: 654 422 330", font=font_normal, fill="black")
         draw.text((60, y_pie+110), "Operacion exenta de IVA segun Art. 20.Uno.22 Ley 37/1992", font=font_tiny, fill=(130,130,130))
         draw.text((60, y_pie+130), "y acogida al Regimen de Franquicia de IVA (Directiva UE 2020/285)", font=font_tiny, fill=(130,130,130))
+    if not c["v"]:
+        draw.text((60, y_pie), "FORMA DE PAGO: En efectivo", font=font_normal, fill="black")
     draw.text((60, y_pie+170), "NOTA: Pago tipo Bono por adelantado.", font=font_small, fill=(100,100,100))
 
     buf = io.BytesIO()
@@ -164,7 +179,10 @@ if key_nf not in st.session_state:
 num_factura = st.session_state[key_nf]
 
 # Generar imagen con datos actuales
-img_bytes = generar_imagen(cn, c, mi, anio, dias_actuales, num_factura)
+key_lineas = f"lineas_extra_{cn}_{mi}_{anio}"
+if key_lineas not in st.session_state:
+    st.session_state[key_lineas] = []
+img_bytes = generar_imagen(cn, c, mi, anio, dias_actuales, num_factura, st.session_state[key_lineas])
 st.image(img_bytes, use_container_width=True)
 
 st.markdown("---")
@@ -212,12 +230,46 @@ if st.session_state.get(key_edicion, False):
         if dia_extra and dia_extra not in nuevos_dias:
             nuevos_dias.append(dia_extra)
 
+    st.markdown("**Líneas extra (devoluciones u otros conceptos):**")
+    key_lineas = f"lineas_extra_{cn}_{mi}_{anio}"
+    if key_lineas not in st.session_state:
+        st.session_state[key_lineas] = []
+
+    for idx, (conc, precio) in enumerate(st.session_state[key_lineas]):
+        c1, c2, c3 = st.columns([3, 1, 0.5])
+        with c1:
+            st.write(conc)
+        with c2:
+            st.write(f"{precio:+.2f} EUR")
+        with c3:
+            if st.button("X", key=f"del_linea_{idx}_{cn}_{mi}_{anio}"):
+                st.session_state[key_lineas].pop(idx)
+                st.rerun()
+
+    c1, c2, c3 = st.columns([3, 1, 1])
+    with c1:
+        nuevo_conc = st.text_input("Concepto", placeholder="Ej: Devolucion 2h dia 05/02",
+                                    key=f"nuevo_conc_{cn}_{mi}_{anio}", label_visibility="collapsed")
+        st.caption("Concepto")
+    with c2:
+        nuevo_precio = st.number_input("Precio", min_value=-500.0, max_value=500.0,
+                                        value=0.0, step=0.5,
+                                        key=f"nuevo_precio_{cn}_{mi}_{anio}", label_visibility="collapsed")
+        st.caption("Importe (negativo = devolucion)")
+    with c3:
+        st.write("")
+        if st.button("Añadir línea", key=f"btn_linea_{cn}_{mi}_{anio}"):
+            if nuevo_conc and nuevo_precio != 0:
+                st.session_state[key_lineas].append((nuevo_conc, nuevo_precio))
+                st.rerun()
+
     col_g, col_c2 = st.columns(2)
     with col_g:
         if st.button("💾 Guardar cambios", use_container_width=True, type="primary"):
             st.session_state[key_dias_mod] = nuevos_dias
             st.session_state[key_edicion] = False
             st.rerun()
+        
     with col_c2:
         if st.button("Cancelar", use_container_width=True):
             st.session_state[key_edicion] = False
