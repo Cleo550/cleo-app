@@ -6,6 +6,22 @@ from supabase import create_client
 
 st.set_page_config(page_title="Gastos e Ingresos - Cleo Pro", layout="centered")
 
+def check_password():
+    if st.session_state.get("autenticada"):
+        return True
+    st.title("Cleo Pro")
+    pwd = st.text_input("Contraseña", type="password")
+    if st.button("Entrar"):
+        if pwd == st.secrets["password"]:
+            st.session_state["autenticada"] = True
+            st.rerun()
+        else:
+            st.error("Contraseña incorrecta")
+    st.stop()
+
+check_password()
+
+
 # --- SUPABASE ---
 @st.cache_resource
 def get_supabase():

@@ -6,6 +6,22 @@ import io
 
 st.set_page_config(page_title="Facturas Clientes - Cleo Pro", layout="centered")
 
+def check_password():
+    if st.session_state.get("autenticada"):
+        return True
+    st.title("Cleo Pro")
+    pwd = st.text_input("Contraseña", type="password")
+    if st.button("Entrar"):
+        if pwd == st.secrets["password"]:
+            st.session_state["autenticada"] = True
+            st.rerun()
+        else:
+            st.error("Contraseña incorrecta")
+    st.stop()
+
+check_password()
+
+
 # --- DATOS ---
 CLIS = {
     "Lola":     {"n": "Maria Dolores Albero Moya", "f": "21422031S", "d": "Calle Alcalde Ramon Orts Galan, 7 Bungalow 52", "p": "03690 Sant Vicent del Raspeig", "t": 14.0, "h": 4.0, "w": [2], "v": True},
