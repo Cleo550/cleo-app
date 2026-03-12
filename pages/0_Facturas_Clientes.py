@@ -23,6 +23,23 @@ def check_password():
 
 check_password()
 
+# --- SUPABASE ---
+@st.cache_resource
+def get_supabase():
+    return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+
+supabase = get_supabase()
+
+def get_dato(clave, defecto):
+    try:
+        r = supabase.table("datos_app").select("valor").eq("clave", clave).execute()
+        if r.data:
+            return json.loads(r.data[0]["valor"])
+        return defecto
+    except:
+        return defecto
+
+
 
 # --- DATOS ---
 CLIS = {
