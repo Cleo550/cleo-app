@@ -2,8 +2,7 @@ import streamlit as st
 import calendar
 from datetime import datetime
 import json
-import requests
-import base64
+from supabase import create_client
 
 st.set_page_config(page_title="Gastos e Ingresos - Cleo Pro", layout="centered")
 
