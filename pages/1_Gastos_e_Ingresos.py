@@ -6,49 +6,27 @@ from supabase import create_client
 
 st.set_page_config(page_title="Gastos e Ingresos - Cleo Pro", layout="centered")
 
-# --- GITHUB PERSISTENCIA ---
-GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
-GITHUB_REPO = st.secrets["GITHUB_REPO"]
-GITHUB_FILE = "datos.json"
-GITHUB_API = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_FILE}"
-HEADERS = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+# --- SUPABASE ---
+@st.cache_resource
+def get_supabase():
+    return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
-def cargar_datos():
-    try:
-        r = requests.get(GITHUB_API, headers=HEADERS)
-        if r.status_code == 200:
-            contenido = r.json()
-            datos = json.loads(base64.b64decode(contenido["content"]).decode())
-            return datos, contenido["sha"]
-        return {}, None
-    except:
-        return {}, None
-
-def guardar_datos(datos, sha):
-    try:
-        contenido = base64.b64encode(json.dumps(datos, ensure_ascii=False, indent=2).encode()).decode()
-        payload = {"message": "Actualizar datos Cleo Pro", "content": contenido}
-        if sha:
-            payload["sha"] = sha
-        requests.put(GITHUB_API, headers=HEADERS, json=payload)
-    except:
-        pass
-
-# Cargar datos desde GitHub siempre que se abre la app
-if "gh_cargado" not in st.session_state:
-    datos, sha = cargar_datos()
-    st.session_state["gh_datos"] = datos
-    st.session_state["gh_sha"] = sha
-    st.session_state["gh_cargado"] = True
-
-
+supabase = get_supabase()
 
 def get_dato(clave, defecto):
-    return st.session_state["gh_datos"].get(clave, defecto)
+    try:
+        r = supabase.table("datos_app").select("valor").eq("clave", clave).execute()
+        if r.data:
+            return json.loads(r.data[0]["valor"])
+        return defecto
+    except:
+        return defecto
 
 def set_dato(clave, valor):
-    st.session_state["gh_datos"][clave] = valor
-    guardar_datos(st.session_state["gh_datos"], st.session_state["gh_sha"])
+    try:
+        supabase.table("datos_app").upsert({"clave": clave, "valor": json.dumps(valor)}).execute()
+    except:
+        pass
 
 # --- DATOS CLIENTES ---
 CLIS = {
@@ -65,7 +43,7 @@ def calcular_dias_mes(cliente_data, anio, mes_idx):
     return [d for s in cal.monthdays2calendar(anio, mes_idx)
             for d, ds in s if d != 0 and ds in cliente_data["w"]]
 
-# --- SELECTOR MES Y ANIO ---
+# --- SELECTOR MES Y AÑO ---
 col_mes, col_anio = st.columns(2)
 with col_mes:
     mes_nombre = st.selectbox("Mes", MESES, index=datetime.now().month - 1)
@@ -87,6 +65,8 @@ for cliente, datos in CLIS.items():
     dias_cal = calcular_dias_mes(datos, anio, mi)
     num_dias_defecto = len(dias_cal)
     key_dias = f"dias_{cliente}_{mi}_{anio}"
+
+    # Cargar valor guardado en Supabase
     valor_guardado = int(get_dato(key_dias, num_dias_defecto))
 
     st.markdown(f"**{cliente}** · {datos['h']}h/dia · {datos['t']} EUR/h")
@@ -403,7 +383,6 @@ with st.expander("Ver desglose completo"):
     for nombre_i, importe_i in st.session_state[key_ing_extra]:
         st.write(f"- {nombre_i}: {importe_i:.2f} EUR")
     st.write(f"**= Total ingresos: {total_ingresos:.2f} EUR**")
-
     st.markdown("---")
     st.markdown("**Trade Republic:**")
     st.write(f"- Pagos anuales: {total_anuales:.2f} EUR/mes")
@@ -411,7 +390,6 @@ with st.expander("Ver desglose completo"):
     for nombre_t, importe_t in st.session_state[key_tr_extra]:
         st.write(f"- {nombre_t}: {importe_t:.2f} EUR")
     st.write(f"**= Total Trade Republic: {total_sobres:.2f} EUR**")
-
     st.markdown("---")
     st.markdown("**BBVA:**")
     for gasto, importe in GASTOS_BBVA.items():
@@ -419,7 +397,6 @@ with st.expander("Ver desglose completo"):
     for nombre_b, importe_b in st.session_state[key_bbva_extra]:
         st.write(f"- {nombre_b}: {importe_b:.2f} EUR")
     st.write(f"**= Total BBVA: {total_fijos:.2f} EUR**")
-
     st.markdown("---")
     st.write(f"**Gastos Efectivo:** {total_extras:.2f} EUR")
     st.markdown("---")
@@ -428,6 +405,3 @@ with st.expander("Ver desglose completo"):
     st.write(f"**- BBVA:** -{total_fijos:.2f} EUR")
     st.write(f"**- Efectivo:** -{total_extras:.2f} EUR")
     st.write(f"**= Dinero libre: {neto_real:.2f} EUR**")
-
-st.divider()
-
