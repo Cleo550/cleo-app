@@ -38,6 +38,31 @@ def get_dato(clave, defecto):
     except:
         return defecto
 
+def get_sobre_anual(nombre, mi, anio, defecto):
+    """Busca el valor del sobre para este mes, si no hay busca el último mes anterior con dato."""
+    clave = f"sobre_anual_{nombre.replace(' ','_')}_{mi}_{anio}"
+    try:
+        r = supabase.table("datos_app").select("valor").eq("clave", clave).execute()
+        if r.data:
+            return float(r.data[0]["valor"]), clave
+    except:
+        pass
+    # Buscar hacia atrás hasta 24 meses
+    m, a = mi, anio
+    for _ in range(24):
+        m -= 1
+        if m == 0:
+            m = 12
+            a -= 1
+        clave_ant = f"sobre_anual_{nombre.replace(' ','_')}_{m}_{a}"
+        try:
+            r = supabase.table("datos_app").select("valor").eq("clave", clave_ant).execute()
+            if r.data:
+                return float(r.data[0]["valor"]), clave
+        except:
+            pass
+    return defecto, clave
+
 def set_dato(clave, valor):
     try:
         supabase.table("datos_app").upsert({"clave": clave, "valor": json.dumps(valor)}).execute()
@@ -181,9 +206,8 @@ sobres_vals = {}
 
 st.markdown("**Pagos anuales** - Ahorra mensualmente para no sufrir el golpe")
 for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
-    # Cargar valor guardado (si existe) o usar el por defecto
-    clave_anual = f"sobre_anual_{nombre.replace(' ','_')}"
-    anual_guardado = float(get_dato(clave_anual, anual_def))
+    # Clave única por nombre + mes + año → busca hacia atrás si no hay dato
+    anual_guardado, clave_anual = get_sobre_anual(nombre, mi, anio, anual_def)
 
     st.markdown(f"**{nombre}**")
     c1, c2 = st.columns(2)
@@ -192,7 +216,6 @@ for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
             f"Al año", min_value=0.0, max_value=2000.0,
             value=anual_guardado, step=0.5, key=f"anual_{i}_{mi}_{anio}",
         )
-        # Si ha cambiado, guardar en Supabase para este y futuros meses
         if val_anual != anual_guardado:
             supabase.table("datos_app").upsert({
                 "clave": clave_anual,
