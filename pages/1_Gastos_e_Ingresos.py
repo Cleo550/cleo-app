@@ -38,16 +38,21 @@ def get_dato(clave, defecto):
     except:
         return defecto
 
-def get_sobre_anual(nombre, mi, anio, defecto):
+@st.cache_data(ttl=60)
+def get_todos_sobres():
+    """Carga todos los datos de sobres de una vez."""
+    try:
+        r = supabase.table("datos_app").select("clave,valor").like("clave", "sobre_anual_%").execute()
+        return {row["clave"]: float(row["valor"]) for row in r.data}
+    except:
+        return {}
+
+def get_sobre_anual(nombre, mi, anio, defecto, todos):
     """Busca el valor del sobre para este mes, si no hay busca el último mes anterior con dato."""
     clave = f"sobre_anual_{nombre.replace(' ','_')}_{mi}_{anio}"
-    try:
-        r = supabase.table("datos_app").select("valor").eq("clave", clave).execute()
-        if r.data:
-            return float(r.data[0]["valor"]), clave
-    except:
-        pass
-    # Buscar hacia atrás hasta 24 meses
+    if clave in todos:
+        return todos[clave], clave
+    # Buscar hacia atrás hasta 24 meses en el dict ya cargado
     m, a = mi, anio
     for _ in range(24):
         m -= 1
@@ -55,12 +60,8 @@ def get_sobre_anual(nombre, mi, anio, defecto):
             m = 12
             a -= 1
         clave_ant = f"sobre_anual_{nombre.replace(' ','_')}_{m}_{a}"
-        try:
-            r = supabase.table("datos_app").select("valor").eq("clave", clave_ant).execute()
-            if r.data:
-                return float(r.data[0]["valor"]), clave
-        except:
-            pass
+        if clave_ant in todos:
+            return todos[clave_ant], clave
     return defecto, clave
 
 def set_dato(clave, valor):
@@ -205,9 +206,10 @@ total_sobres = 0.0
 sobres_vals = {}
 
 st.markdown("**Pagos anuales** - Ahorra mensualmente para no sufrir el golpe")
+todos_sobres = get_todos_sobres()
 for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
     # Clave única por nombre + mes + año → busca hacia atrás si no hay dato
-    anual_guardado, clave_anual = get_sobre_anual(nombre, mi, anio, anual_def)
+    anual_guardado, clave_anual = get_sobre_anual(nombre, mi, anio, anual_def, todos_sobres)
 
     st.markdown(f"**{nombre}**")
     c1, c2 = st.columns(2)
@@ -221,6 +223,7 @@ for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
                 "clave": clave_anual,
                 "valor": str(val_anual)
             }).execute()
+            get_todos_sobres.clear()
     with c2:
         val_mes = round(val_anual / 12, 2)
         st.markdown("**Al mes**")
