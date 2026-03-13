@@ -211,23 +211,42 @@ for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
     # Clave única por nombre + mes + año → busca hacia atrás si no hay dato
     anual_guardado, clave_anual = get_sobre_anual(nombre, mi, anio, anual_def, todos_sobres)
 
-    st.markdown(f"**{nombre}**")
-    c1, c2 = st.columns(2)
-    with c1:
-        val_anual = st.number_input(
-            f"Al año", min_value=0.0, max_value=2000.0,
-            value=anual_guardado, step=0.5, key=f"anual_{i}_{mi}_{anio}",
-        )
-        if val_anual != anual_guardado:
-            supabase.table("datos_app").upsert({
-                "clave": clave_anual,
-                "valor": str(val_anual)
-            }).execute()
-            get_todos_sobres.clear()
-    with c2:
-        val_mes = round(val_anual / 12, 2)
-        st.markdown("**Al mes**")
-        st.markdown(f"### {val_mes:.2f} €")
+    # Mes de pago guardado en Supabase
+    clave_mes_pago = f"sobre_mes_pago_{nombre.replace(' ','_')}"
+    mes_pago_guardado = int(get_dato(clave_mes_pago, 1))
+
+    with st.expander(f"**{nombre}**", expanded=True):
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            val_anual = st.number_input(
+                f"Al año (EUR)", min_value=0.0, max_value=2000.0,
+                value=anual_guardado, step=0.5, key=f"anual_{i}_{mi}_{anio}",
+            )
+            if val_anual != anual_guardado:
+                supabase.table("datos_app").upsert({
+                    "clave": clave_anual,
+                    "valor": str(val_anual)
+                }).execute()
+                get_todos_sobres.clear()
+        with c2:
+            val_mes = round(val_anual / 12, 2)
+            st.markdown("**Al mes**")
+            st.markdown(f"### {val_mes:.2f} €")
+        with c3:
+            meses_str = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
+            mes_pago = st.selectbox("Mes de pago", list(range(1,13)),
+                                     index=mes_pago_guardado-1,
+                                     format_func=lambda x: meses_str[x-1],
+                                     key=f"mes_pago_{i}_{mi}_{anio}")
+            if mes_pago != mes_pago_guardado:
+                supabase.table("datos_app").upsert({
+                    "clave": clave_mes_pago,
+                    "valor": str(mes_pago)
+                }).execute()
+        # Aviso mes anterior al pago
+        mes_aviso = mes_pago - 1 if mes_pago > 1 else 12
+        if mi == mes_aviso:
+            st.warning(f"⚠️ El próximo mes toca pagar **{nombre}**: {val_anual:.2f} EUR ({meses_str[mes_pago-1]})")
     sobres_vals[nombre] = val_mes
     total_sobres += val_mes
 
@@ -238,52 +257,89 @@ if key_tr_extra not in st.session_state:
     st.session_state[key_tr_extra] = get_dato(key_tr_extra, [])
 
 if st.session_state[key_tr_extra]:
-    for idx, (nombre_t, importe_t) in enumerate(st.session_state[key_tr_extra]):
-        c1, c2, c3 = st.columns([2, 1, 0.5])
+    for idx, item in enumerate(st.session_state[key_tr_extra]):
+        # Compatibilidad: formato antiguo (nombre, importe) o nuevo (nombre, mensualizado, periodo, total, mes_pago)
+        if len(item) == 2:
+            nombre_t, importe_t = item
+            periodo_t, total_t, mes_pago_t = "Mensual", importe_t, None
+        else:
+            nombre_t, importe_t, periodo_t, total_t, mes_pago_t = item
+        c1, c2, c3 = st.columns([3, 1.5, 0.5])
         with c1:
-            st.write(nombre_t)
+            st.write(f"**{nombre_t}** · {periodo_t} · {total_t:.2f} EUR")
         with c2:
-            st.write(f"{importe_t:.2f} EUR")
+            st.write(f"{importe_t:.2f} EUR/mes")
         with c3:
             if st.button("X", key=f"del_tr_{idx}_{mi}_{anio}"):
                 st.session_state[key_tr_extra].pop(idx)
                 set_dato(key_tr_extra, st.session_state[key_tr_extra])
                 st.rerun()
+        # Aviso el mes anterior al pago
+        if mes_pago_t:
+            mes_aviso = mes_pago_t - 1 if mes_pago_t > 1 else 12
+            if mi == mes_aviso:
+                meses_str = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
+                st.warning(f"⚠️ El próximo mes toca pagar **{nombre_t}**: {total_t:.2f} EUR ({meses_str[mes_pago_t-1]})")
         total_sobres += importe_t
 
 total_anuales = total_sobres
 st.info(f"Total pagos anuales: {total_anuales:.2f} EUR/mes · Al año: {total_anuales*12:.2f} EUR")
 
-c1, c2, c3 = st.columns([2, 1, 1])
-with c1:
-    tr_nombre = st.text_input("Nombre sobre TR", placeholder="Ej: Nuevo ahorro",
-                               key=f"tr_nombre_{mi}_{anio}", label_visibility="collapsed")
-    st.caption("Nombre del sobre")
-with c2:
-    tr_importe = st.number_input("Importe TR EUR", min_value=0.0, max_value=1000.0,
-                                  value=0.0, step=0.5, key=f"tr_importe_{mi}_{anio}",
-                                  label_visibility="collapsed")
-    st.caption("Importe EUR/mes")
-with c3:
-    st.write("")
-    if st.button("Añadir sobre", key=f"btn_add_tr_{mi}_{anio}"):
-        if tr_nombre and tr_importe > 0:
-            st.session_state[key_tr_extra].append((tr_nombre, tr_importe))
-            set_dato(key_tr_extra, st.session_state[key_tr_extra])
+if st.button("➕ Añadir nuevo sobre", key=f"btn_show_sobre_{mi}_{anio}"):
+    st.session_state[f"show_nuevo_sobre_{mi}_{anio}"] = True
+
+if st.session_state.get(f"show_nuevo_sobre_{mi}_{anio}", False):
+    st.markdown("**Nuevo sobre:**")
+    c1, c2 = st.columns(2)
+    with c1:
+        tr_nombre = st.text_input("Nombre del sobre", placeholder="Ej: Seguro hogar",
+                                   key=f"tr_nombre_{mi}_{anio}")
+    with c2:
+        tr_periodo = st.selectbox("Periodicidad", ["Mensual", "Trimestral", "Semestral", "Anual"],
+                                   key=f"tr_periodo_{mi}_{anio}")
+    c3, c4 = st.columns(2)
+    with c3:
+        tr_importe_total = st.number_input("Importe total del periodo (EUR)",
+                                            min_value=0.0, max_value=5000.0,
+                                            value=0.0, step=0.5, key=f"tr_importe_{mi}_{anio}")
+    with c4:
+        tr_mes_pago = st.selectbox("Mes de pago", list(range(1, 13)),
+                                    format_func=lambda x: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"][x-1],
+                                    key=f"tr_mes_pago_{mi}_{anio}")
+
+    divisor = {"Mensual": 1, "Trimestral": 3, "Semestral": 6, "Anual": 12}[tr_periodo]
+    tr_mensualizado = round(tr_importe_total / divisor, 2)
+    if tr_importe_total > 0:
+        st.caption(f"Apartando {tr_mensualizado:.2f} EUR/mes")
+
+    c5, c6 = st.columns(2)
+    with c5:
+        if st.button("💾 Guardar sobre", key=f"btn_add_tr_{mi}_{anio}"):
+            if tr_nombre and tr_importe_total > 0:
+                nuevo = (tr_nombre, tr_mensualizado, tr_periodo, tr_importe_total, tr_mes_pago)
+                st.session_state[key_tr_extra].append(nuevo)
+                set_dato(key_tr_extra, st.session_state[key_tr_extra])
+                st.session_state[f"show_nuevo_sobre_{mi}_{anio}"] = False
+                st.rerun()
+    with c6:
+        if st.button("Cancelar", key=f"btn_cancel_sobre_{mi}_{anio}"):
+            st.session_state[f"show_nuevo_sobre_{mi}_{anio}"] = False
             st.rerun()
 
 st.markdown("---")
 st.markdown("**Mod. 130 - Pago trimestral**")
 st.caption("Se paga en Abril, Julio, Octubre y Enero. Aparta 1/3 cada mes.")
 meses_pago_130 = [1, 4, 7, 10]
+# Aviso el mes anterior al pago
+meses_aviso_130 = [12, 3, 6, 9]
 for i, (nombre, importe) in enumerate(SOBRES_MENSUALES.items()):
     val = st.number_input(nombre, min_value=0.0, max_value=1000.0,
                           value=importe, step=0.5, key=f"smen_{i}_{mi}_{anio}")
     sobres_vals[nombre] = val / 3
     total_sobres += val / 3
     st.caption(f"Apartando {val/3:.2f} EUR/mes → {val:.2f} EUR al trimestre")
-    if mi in meses_pago_130:
-        st.warning(f"⚠️ Este mes toca pagar el Mod. 130: {val:.2f} EUR")
+    if mi in meses_aviso_130:
+        st.warning(f"⚠️ El próximo mes toca pagar el Mod. 130: {val:.2f} EUR")
 
 total_mensuales = sum(sobres_vals[k] for k in SOBRES_MENSUALES)
 st.info(f"Total Mod. 130 mensualizado: {total_mensuales:.2f} EUR/mes")
