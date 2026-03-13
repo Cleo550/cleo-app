@@ -78,7 +78,7 @@ def generar_imagen(cn, c, mi, anio, dias, num_factura, lineas_extra=None):
     # Logo
     try:
         lg = Image.open("logo.jpeg")
-        lg.thumbnail((200, 100))
+        lg.thumbnail((400, 200))
         img.paste(lg, ((W - lg.width) // 2, 20))
         y_after_logo = 20 + lg.height + 15
     except:
@@ -111,7 +111,7 @@ def generar_imagen(cn, c, mi, anio, dias, num_factura, lineas_extra=None):
     for col, header in zip(cols, headers):
         draw.text((col+20, y_tab+30), header, font=font_bold, fill="black")
 
-    y = y_tab + 32
+    y = y_tab + 50
     tot_f = 0.0
     for fecha in dias:
         sub = c["h"] * c["t"]
