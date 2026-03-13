@@ -60,101 +60,101 @@ def generar_imagen(cn, c, mi, anio, dias, num_factura, lineas_extra=None):
         lineas_extra = []
 
     # Canvas grande para que las letras se vean bien en móvil
-    W, H = 2480, 3508
+    W, H = 800, 1400
     S = 2  # factor de escala respecto al diseño original
 
     img = Image.new('RGB', (W, H), "white")
     draw = ImageDraw.Draw(img)
 
     try:
-        font_title  = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 150)
-        font_bold   = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 118)
-        font_normal = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 107)
-        font_small  = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 86)
-        font_tiny   = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 75)
+        font_title  = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 28)
+        font_bold   = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 22)
+        font_normal = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 18)
+        font_small  = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 15)
+        font_tiny   = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 13)
     except:
         font_title = font_bold = font_normal = font_small = font_tiny = ImageFont.load_default()
 
     # Logo
     try:
         lg = Image.open("logo.jpeg")
-        lg.thumbnail((600, 300))
-        img.paste(lg, ((W - lg.width) // 2, 80))
-        y_after_logo = 80 + lg.height + 60
+        lg.thumbnail((200, 100))
+        img.paste(lg, ((W - lg.width) // 2, 20))
+        y_after_logo = 20 + lg.height + 15
     except:
-        draw.text((W//2 - 120, 120), "CLEO PRO", font=font_title, fill="black")
-        y_after_logo = 280
+        draw.text((W//2 - 40, 20), "CLEO PRO", font=font_title, fill="black")
+        y_after_logo = 60
 
     # Cabecera
     if c["v"]:
         texto_cab = f"Nº Factura: {num_factura}" if num_factura else "Nº Factura: "
-        draw.text((W - 900, y_after_logo), texto_cab, font=font_bold, fill="black")
+        draw.text((W - 280, y_after_logo), texto_cab, font=font_bold, fill="black")
     else:
-        draw.text((W - 900, y_after_logo), "BONO MENSUAL", font=font_bold, fill="black")
-    draw.text((W - 900, y_after_logo + 140), f"Fecha: 01/{mi:02d}/{int(anio)}", font=font_normal, fill="black")
+        draw.text((W - 280, y_after_logo), "BONO MENSUAL", font=font_bold, fill="black")
+    draw.text((W - 280, y_after_logo + 28), f"Fecha: 01/{mi:02d}/{int(anio)}", font=font_normal, fill="black")
 
     # Emisor y Cliente
-    y_info = y_after_logo + 300
-    draw.text((120, y_info), "EMISOR", font=font_bold, fill="black")
+    y_info = y_after_logo + 60
+    draw.text((10, y_info), "EMISOR", font=font_bold, fill="black")
     for i, linea in enumerate(["Sandra Ramirez Galvez", "NIF: 78217908Z", "Urb. Alkabir Blq 5, pta i", "03560 El Campello"]):
-        draw.text((120, y_info + 140 + i*120), linea, font=font_normal, fill=(60,60,60))
+        draw.text((10, y_info + 26 + i*22), linea, font=font_normal, fill=(60,60,60))
 
-    draw.text((W//2 + 40, y_info), "CLIENTE", font=font_bold, fill="black")
+    draw.text((W//2 + 10, y_info), "CLIENTE", font=font_bold, fill="black")
     for i, linea in enumerate([c["n"], f"NIF: {c['f']}", c["d"], c["p"]]):
-        draw.text((W//2 + 40, y_info + 140 + i*120), linea, font=font_normal, fill=(60,60,60))
+        draw.text((W//2 + 10, y_info + 26 + i*22), linea, font=font_normal, fill=(60,60,60))
 
     # Tabla
-    y_tab = y_info + 700
-    draw.rectangle([120, y_tab, W-120, y_tab+120], fill=(220,220,220))
-    cols = [120, 600, 1240, 1600, 2040]
+    y_tab = y_info + 160
+    draw.rectangle([10, y_tab, W-10, y_tab+26], fill=(220,220,220))
+    cols = [10, 180, 370, 510, 650]
     headers = ["DESCRIPCION", "FECHA", "HORAS", "PRECIO/H", "TOTAL"]
     for col, header in zip(cols, headers):
         draw.text((col+20, y_tab+30), header, font=font_bold, fill="black")
 
-    y = y_tab + 150
+    y = y_tab + 32
     tot_f = 0.0
     for fecha in dias:
         sub = c["h"] * c["t"]
         tot_f += sub
-        draw.text((cols[0]+20, y), "Servicio limpieza", font=font_normal, fill=(80,80,80))
-        draw.text((cols[1]+20, y), fecha, font=font_normal, fill="black")
-        draw.text((cols[2]+20, y), f"{c['h']}h", font=font_normal, fill="black")
-        draw.text((cols[3]+20, y), f"{c['t']} EUR", font=font_normal, fill="black")
-        draw.text((cols[4]+20, y), f"{sub:.2f} EUR", font=font_normal, fill="black")
-        draw.line([(120, y+120), (W-120, y+120)], fill=(210,210,210))
-        y += 140
+        draw.text((cols[0]+3, y), "Servicio limpieza", font=font_normal, fill=(80,80,80))
+        draw.text((cols[1]+3, y), fecha, font=font_normal, fill="black")
+        draw.text((cols[2]+3, y), f"{c['h']}h", font=font_normal, fill="black")
+        draw.text((cols[3]+3, y), f"{c['t']} EUR", font=font_normal, fill="black")
+        draw.text((cols[4]+3, y), f"{sub:.2f} EUR", font=font_normal, fill="black")
+        draw.line([(10, y+22), (W-10, y+22)], fill=(210,210,210))
+        y += 28
 
     # Lineas extra
     for conc, precio in lineas_extra:
-        draw.text((cols[0]+20, y), conc, font=font_normal, fill=(80,80,80))
-        draw.text((cols[4]+20, y), f"{precio:+.2f} EUR", font=font_normal, fill=(180,0,0) if precio < 0 else (0,130,0))
-        draw.line([(120, y+120), (W-120, y+120)], fill=(210,210,210))
-        y += 140
+        draw.text((cols[0]+3, y), conc, font=font_normal, fill=(80,80,80))
+        draw.text((cols[4]+3, y), f"{precio:+.2f} EUR", font=font_normal, fill=(180,0,0) if precio < 0 else (0,130,0))
+        draw.line([(10, y+22), (W-10, y+22)], fill=(210,210,210))
+        y += 28
         tot_f += precio
 
     # Totales
-    y += 40
+    y += 10
     if c["v"]:
         draw.text((cols[3], y), "BASE TOTAL:", font=font_bold, fill="black")
         draw.text((cols[4], y), f"{tot_f:.2f} EUR", font=font_normal, fill="black")
-        draw.text((cols[3], y+130), "IVA (Exento):", font=font_bold, fill="black")
-        draw.text((cols[4], y+130), "0,00 EUR", font=font_normal, fill="black")
-        y += 260
-    draw.line([(cols[3], y), (W-120, y)], fill="black", width=4)
-    draw.text((cols[3], y+20), "TOTAL:", font=font_bold, fill="black")
-    draw.text((cols[4], y+20), f"{tot_f:.2f} EUR", font=font_bold, fill=(0,100,0))
+        draw.text((cols[3], y+26), "IVA (Exento):", font=font_bold, fill="black")
+        draw.text((cols[4], y+26), "0,00 EUR", font=font_normal, fill="black")
+        y += 55
+    draw.line([(cols[3], y), (W-10, y)], fill="black", width=1)
+    draw.text((cols[3], y+5), "TOTAL:", font=font_bold, fill="black")
+    draw.text((cols[4], y+5), f"{tot_f:.2f} EUR", font=font_bold, fill=(0,100,0))
 
     # Pie
-    y_pie = H - 700
+    y_pie = H - 160
     if c["v"]:
-        draw.text((120, y_pie), "FORMA DE PAGO: Transferencia bancaria o Bizum", font=font_normal, fill="black")
-        draw.text((120, y_pie+130), "IBAN: ES44 0182 0143 5202 0163 6882", font=font_normal, fill="black")
-        draw.text((120, y_pie+260), "Bizum: 654 422 330", font=font_normal, fill="black")
-        draw.text((120, y_pie+400), "Operacion exenta de IVA segun Art. 20.Uno.22 Ley 37/1992", font=font_tiny, fill=(130,130,130))
-        draw.text((120, y_pie+480), "y acogida al Regimen de Franquicia de IVA (Directiva UE 2020/285)", font=font_tiny, fill=(130,130,130))
+        draw.text((10, y_pie), "FORMA DE PAGO: Transferencia bancaria o Bizum", font=font_normal, fill="black")
+        draw.text((10, y_pie+20), "IBAN: ES44 0182 0143 5202 0163 6882", font=font_normal, fill="black")
+        draw.text((10, y_pie+40), "Bizum: 654 422 330", font=font_normal, fill="black")
+        draw.text((10, y_pie+65), "Operacion exenta de IVA segun Art. 20.Uno.22 Ley 37/1992", font=font_tiny, fill=(130,130,130))
+        draw.text((10, y_pie+80), "y acogida al Regimen de Franquicia de IVA (Directiva UE 2020/285)", font=font_tiny, fill=(130,130,130))
     if not c["v"]:
-        draw.text((120, y_pie), "FORMA DE PAGO: En efectivo", font=font_normal, fill="black")
-    draw.text((120, y_pie+580), "NOTA: Pago tipo Bono por adelantado.", font=font_small, fill=(100,100,100))
+        draw.text((10, y_pie), "FORMA DE PAGO: En efectivo", font=font_normal, fill="black")
+    draw.text((10, y_pie+110), "NOTA: Pago tipo Bono por adelantado.", font=font_small, fill=(100,100,100))
 
     buf = io.BytesIO()
     img.save(buf, format="PNG")
