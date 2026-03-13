@@ -180,14 +180,24 @@ total_sobres = 0.0
 sobres_vals = {}
 
 st.markdown("**Pagos anuales** - Ahorra mensualmente para no sufrir el golpe")
-for i, (nombre, (mensual, anual)) in enumerate(SOBRES_ANUALES.items()):
+for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
+    # Cargar valor guardado (si existe) o usar el por defecto
+    clave_anual = f"sobre_anual_{nombre.replace(' ','_')}"
+    anual_guardado = float(get_dato(clave_anual, anual_def))
+
     st.markdown(f"**{nombre}**")
     c1, c2 = st.columns(2)
     with c1:
         val_anual = st.number_input(
             f"Al año", min_value=0.0, max_value=2000.0,
-            value=anual, step=0.5, key=f"anual_{i}_{mi}_{anio}",
+            value=anual_guardado, step=0.5, key=f"anual_{i}_{mi}_{anio}",
         )
+        # Si ha cambiado, guardar en Supabase para este y futuros meses
+        if val_anual != anual_guardado:
+            supabase.table("datos_app").upsert({
+                "clave": clave_anual,
+                "valor": str(val_anual)
+            }).execute()
     with c2:
         val_mes = round(val_anual / 12, 2)
         st.markdown("**Al mes**")
