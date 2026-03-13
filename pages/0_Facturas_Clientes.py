@@ -78,7 +78,7 @@ def generar_imagen(cn, c, mi, anio, dias, num_factura, lineas_extra=None):
     # Logo
     try:
         lg = Image.open("logo.jpeg")
-        lg.thumbnail((400, 200))
+        lg.thumbnail((600, 300))
         img.paste(lg, ((W - lg.width) // 2, 20))
         y_after_logo = 20 + lg.height + 15
     except:
@@ -106,10 +106,10 @@ def generar_imagen(cn, c, mi, anio, dias, num_factura, lineas_extra=None):
     # Tabla
     y_tab = y_info + 160
     draw.rectangle([10, y_tab, W-10, y_tab+44], fill=(220,220,220))
-    cols = [10, 180, 370, 510, 650]
+    cols = [10, 200, 370, 500, 650]
     headers = ["DESCRIPCION", "FECHA", "HORAS", "PRECIO/H", "TOTAL"]
     for col, header in zip(cols, headers):
-        draw.text((col+20, y_tab+30), header, font=font_bold, fill="black")
+        draw.text((col+3, y_tab+12), header, font=font_bold, fill="black")
 
     y = y_tab + 55
     tot_f = 0.0
