@@ -23,7 +23,8 @@ check_password()
 
 @st.cache_resource
 def get_supabase():
-    return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+    key = st.secrets.get("SUPABASE_SERVICE_KEY", st.secrets["SUPABASE_KEY"])
+    return create_client(st.secrets["SUPABASE_URL"], key)
 
 supabase = get_supabase()
 

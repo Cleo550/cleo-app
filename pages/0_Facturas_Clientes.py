@@ -221,7 +221,8 @@ key_lineas = f"lineas_extra_{cn}_{mi}_{anio}"
 if key_lineas not in st.session_state:
     st.session_state[key_lineas] = []
 img_bytes = generar_imagen(cn, c, mi, anio, dias_actuales, num_factura, st.session_state[key_lineas])
-st.image(img_bytes, use_container_width=True)
+zoom = st.slider("Zoom", min_value=50, max_value=200, value=100, step=10, format="%d%%")
+st.image(img_bytes, width=int(700 * zoom / 100))
 
 st.markdown("---")
 
@@ -242,7 +243,7 @@ with col_env:
     nombre_archivo = f"Factura_{cn}_{mn}_{int(anio)}.png" if c["v"] else f"Bono_{cn}_{mn}_{int(anio)}.png"
     st.download_button("📥 Guardar imagen", img_bytes, nombre_archivo,
                        use_container_width=True)
-    st.caption("Guarda y comparte por WhatsApp")
+    st.caption("Guarda en el dispositivo")
 
 with col_mod:
     if st.button("✏️ Modificar factura", use_container_width=True):
