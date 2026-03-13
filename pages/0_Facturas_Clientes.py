@@ -58,7 +58,11 @@ def calcular_dias(cliente_data, anio, mes_idx):
 def generar_imagen(cn, c, mi, anio, dias, num_factura, lineas_extra=None):
     if lineas_extra is None:
         lineas_extra = []
-    W, H = 2480, 4200
+
+    # Canvas grande para que las letras se vean bien en móvil
+    W, H = 2480, 3508
+    S = 2  # factor de escala respecto al diseño original
+
     img = Image.new('RGB', (W, H), "white")
     draw = ImageDraw.Draw(img)
 
@@ -75,11 +79,11 @@ def generar_imagen(cn, c, mi, anio, dias, num_factura, lineas_extra=None):
     try:
         lg = Image.open("logo.jpeg")
         lg.thumbnail((600, 300))
-        img.paste(lg, ((W - lg.width) // 2, 40))
-        y_after_logo = 40 + lg.height + 60
+        img.paste(lg, ((W - lg.width) // 2, 80))
+        y_after_logo = 80 + lg.height + 60
     except:
-        draw.text((W//2 - 60, 60), "CLEO PRO", font=font_title, fill="black")
-        y_after_logo = 140
+        draw.text((W//2 - 120, 120), "CLEO PRO", font=font_title, fill="black")
+        y_after_logo = 280
 
     # Cabecera
     if c["v"]:
@@ -87,45 +91,45 @@ def generar_imagen(cn, c, mi, anio, dias, num_factura, lineas_extra=None):
         draw.text((W - 900, y_after_logo), texto_cab, font=font_bold, fill="black")
     else:
         draw.text((W - 900, y_after_logo), "BONO MENSUAL", font=font_bold, fill="black")
-    draw.text((W - 900, y_after_logo + 80), f"Fecha: 01/{mi:02d}/{int(anio)}", font=font_normal, fill="black")
+    draw.text((W - 900, y_after_logo + 140), f"Fecha: 01/{mi:02d}/{int(anio)}", font=font_normal, fill="black")
 
     # Emisor y Cliente
-    y_info = y_after_logo + 200
-    draw.text((60, y_info), "EMISOR", font=font_bold, fill="black")
+    y_info = y_after_logo + 300
+    draw.text((120, y_info), "EMISOR", font=font_bold, fill="black")
     for i, linea in enumerate(["Sandra Ramirez Galvez", "NIF: 78217908Z", "Urb. Alkabir Blq 5, pta i", "03560 El Campello"]):
-        draw.text((60, y_info + 80 + i*120), linea, font=font_normal, fill=(60,60,60))
+        draw.text((120, y_info + 140 + i*120), linea, font=font_normal, fill=(60,60,60))
 
-    draw.text((W//2 + 20, y_info), "CLIENTE", font=font_bold, fill="black")
+    draw.text((W//2 + 40, y_info), "CLIENTE", font=font_bold, fill="black")
     for i, linea in enumerate([c["n"], f"NIF: {c['f']}", c["d"], c["p"]]):
-        draw.text((W//2 + 20, y_info + 80 + i*120), linea, font=font_normal, fill=(60,60,60))
+        draw.text((W//2 + 40, y_info + 140 + i*120), linea, font=font_normal, fill=(60,60,60))
 
     # Tabla
     y_tab = y_info + 700
-    draw.rectangle([60, y_tab, W-60, y_tab+120], fill=(220,220,220))
-    cols = [60, 550, 1100, 1500, 1950]
+    draw.rectangle([120, y_tab, W-120, y_tab+120], fill=(220,220,220))
+    cols = [120, 600, 1240, 1600, 2040]
     headers = ["DESCRIPCION", "FECHA", "HORAS", "PRECIO/H", "TOTAL"]
     for col, header in zip(cols, headers):
-        draw.text((col+10, y_tab+30), header, font=font_bold, fill="black")
+        draw.text((col+20, y_tab+30), header, font=font_bold, fill="black")
 
-    y = y_tab + 140
+    y = y_tab + 150
     tot_f = 0.0
     for fecha in dias:
         sub = c["h"] * c["t"]
         tot_f += sub
-        draw.text((cols[0]+10, y), "Servicio limpieza", font=font_normal, fill=(80,80,80))
-        draw.text((cols[1]+10, y), fecha, font=font_normal, fill="black")
-        draw.text((cols[2]+10, y), f"{c['h']}h", font=font_normal, fill="black")
-        draw.text((cols[3]+10, y), f"{c['t']} EUR", font=font_normal, fill="black")
-        draw.text((cols[4]+10, y), f"{sub:.2f} EUR", font=font_normal, fill="black")
-        draw.line([(60, y+110), (W-60, y+110)], fill=(210,210,210))
-        y += 130
+        draw.text((cols[0]+20, y), "Servicio limpieza", font=font_normal, fill=(80,80,80))
+        draw.text((cols[1]+20, y), fecha, font=font_normal, fill="black")
+        draw.text((cols[2]+20, y), f"{c['h']}h", font=font_normal, fill="black")
+        draw.text((cols[3]+20, y), f"{c['t']} EUR", font=font_normal, fill="black")
+        draw.text((cols[4]+20, y), f"{sub:.2f} EUR", font=font_normal, fill="black")
+        draw.line([(120, y+120), (W-120, y+120)], fill=(210,210,210))
+        y += 140
 
     # Lineas extra
     for conc, precio in lineas_extra:
-        draw.text((cols[0]+10, y), conc, font=font_normal, fill=(80,80,80))
-        draw.text((cols[4]+10, y), f"{precio:+.2f} EUR", font=font_normal, fill=(180,0,0) if precio < 0 else (0,130,0))
-        draw.line([(60, y+110), (W-60, y+110)], fill=(210,210,210))
-        y += 130
+        draw.text((cols[0]+20, y), conc, font=font_normal, fill=(80,80,80))
+        draw.text((cols[4]+20, y), f"{precio:+.2f} EUR", font=font_normal, fill=(180,0,0) if precio < 0 else (0,130,0))
+        draw.line([(120, y+120), (W-120, y+120)], fill=(210,210,210))
+        y += 140
         tot_f += precio
 
     # Totales
@@ -136,21 +140,21 @@ def generar_imagen(cn, c, mi, anio, dias, num_factura, lineas_extra=None):
         draw.text((cols[3], y+130), "IVA (Exento):", font=font_bold, fill="black")
         draw.text((cols[4], y+130), "0,00 EUR", font=font_normal, fill="black")
         y += 260
-    draw.line([(cols[3], y), (W-60, y)], fill="black", width=2)
+    draw.line([(cols[3], y), (W-120, y)], fill="black", width=4)
     draw.text((cols[3], y+20), "TOTAL:", font=font_bold, fill="black")
     draw.text((cols[4], y+20), f"{tot_f:.2f} EUR", font=font_bold, fill=(0,100,0))
 
     # Pie
-    y_pie = H - 800
+    y_pie = H - 700
     if c["v"]:
-        draw.text((60, y_pie), "FORMA DE PAGO: Transferencia bancaria o Bizum", font=font_normal, fill="black")
-        draw.text((60, y_pie+130), "IBAN: ES44 0182 0143 5202 0163 6882", font=font_normal, fill="black")
-        draw.text((60, y_pie+250), "Bizum: 654 422 330", font=font_normal, fill="black")
-        draw.text((60, y_pie+400), "Operacion exenta de IVA segun Art. 20.Uno.22 Ley 37/1992", font=font_tiny, fill=(130,130,130))
-        draw.text((60, y_pie+500), "y acogida al Regimen de Franquicia de IVA (Directiva UE 2020/285)", font=font_tiny, fill=(130,130,130))
+        draw.text((120, y_pie), "FORMA DE PAGO: Transferencia bancaria o Bizum", font=font_normal, fill="black")
+        draw.text((120, y_pie+130), "IBAN: ES44 0182 0143 5202 0163 6882", font=font_normal, fill="black")
+        draw.text((120, y_pie+260), "Bizum: 654 422 330", font=font_normal, fill="black")
+        draw.text((120, y_pie+400), "Operacion exenta de IVA segun Art. 20.Uno.22 Ley 37/1992", font=font_tiny, fill=(130,130,130))
+        draw.text((120, y_pie+480), "y acogida al Regimen de Franquicia de IVA (Directiva UE 2020/285)", font=font_tiny, fill=(130,130,130))
     if not c["v"]:
-        draw.text((60, y_pie), "FORMA DE PAGO: En efectivo", font=font_normal, fill="black")
-    draw.text((60, y_pie+620), "NOTA: Pago tipo Bono por adelantado.", font=font_small, fill=(100,100,100))
+        draw.text((120, y_pie), "FORMA DE PAGO: En efectivo", font=font_normal, fill="black")
+    draw.text((120, y_pie+580), "NOTA: Pago tipo Bono por adelantado.", font=font_small, fill=(100,100,100))
 
     buf = io.BytesIO()
     img.save(buf, format="PNG")
@@ -168,7 +172,6 @@ with col2:
 mi = MESES.index(mn) + 1
 st.markdown("---")
 
-# Botones cliente
 col_l, col_y, col_a = st.columns(3)
 if "cliente_sel" not in st.session_state:
     st.session_state["cliente_sel"] = "Lola"
@@ -192,7 +195,6 @@ with col_a:
 cn = st.session_state["cliente_sel"]
 c = CLIS[cn]
 
-# Dias desde Supabase
 dias_cal = calcular_dias(c, anio, mi)
 key_dias_supabase = f"dias_{cn}_{mi}_{anio}"
 num_dias_guardado = int(get_dato(key_dias_supabase, len(dias_cal)))
@@ -204,24 +206,20 @@ if key_dias_mod not in st.session_state:
 
 dias_actuales = st.session_state[key_dias_mod]
 
-# Numero factura
 key_nf = f"nf_{cn}_{mi}_{anio}"
 if key_nf not in st.session_state:
     st.session_state[key_nf] = ""
 num_factura = st.session_state[key_nf]
 
-# Lineas extra
 key_lineas = f"lineas_extra_{cn}_{mi}_{anio}"
 if key_lineas not in st.session_state:
     st.session_state[key_lineas] = []
 
-# Generar imagen
 img_bytes = generar_imagen(cn, c, mi, anio, dias_actuales, num_factura, st.session_state[key_lineas])
 st.image(img_bytes, use_container_width=True)
 
 st.markdown("---")
 
-# Botones accion
 col_nf, col_env, col_mod = st.columns(3)
 
 with col_nf:
@@ -243,7 +241,6 @@ with col_mod:
     if st.button("✏️ Modificar factura", use_container_width=True):
         st.session_state[f"modo_edicion_{cn}_{mi}_{anio}"] = True
 
-# --- MODO EDICION ---
 key_edicion = f"modo_edicion_{cn}_{mi}_{anio}"
 if st.session_state.get(key_edicion, False):
     st.markdown("---")
