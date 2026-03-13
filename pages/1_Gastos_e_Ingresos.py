@@ -180,24 +180,22 @@ total_sobres = 0.0
 sobres_vals = {}
 
 st.markdown("**Pagos anuales** - Ahorra mensualmente para no sufrir el golpe")
-cols = st.columns(4)
 for i, (nombre, (mensual, anual)) in enumerate(SOBRES_ANUALES.items()):
-    with cols[i % 4]:
+    st.markdown(f"**{nombre}**")
+    c1, c2 = st.columns(2)
+    with c1:
         val_anual = st.number_input(
-            f"Anual {nombre}", min_value=0.0, max_value=2000.0,
+            f"Al año", min_value=0.0, max_value=2000.0,
             value=anual, step=0.5, key=f"anual_{i}_{mi}_{anio}",
-            label_visibility="collapsed"
         )
-        st.caption(f"Al año: {val_anual:.2f} EUR")
+    with c2:
         val_mes_calc = round(val_anual / 12, 2)
         val_mes = st.number_input(
-            f"Mensual {nombre}", min_value=0.0, max_value=500.0,
+            f"Al mes", min_value=0.0, max_value=500.0,
             value=val_mes_calc, step=0.5, key=f"san_{i}_{mi}_{anio}",
-            label_visibility="collapsed"
         )
-        st.caption(f"{nombre}: {val_mes:.2f} EUR/mes")
-        sobres_vals[nombre] = val_mes
-        total_sobres += val_mes
+    sobres_vals[nombre] = val_mes
+    total_sobres += val_mes
 
 total_anuales = sum(sobres_vals[k] for k in SOBRES_ANUALES)
 st.info(f"Total pagos anuales: {total_anuales:.2f} EUR/mes · Al año: {total_anuales*12:.2f} EUR")
