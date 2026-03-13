@@ -169,9 +169,11 @@ SOBRES_ANUALES = {
 }
 
 SOBRES_MENSUALES = {
-    "Cuota Autonomo": 88.72,
-    "IRPF":           67.00,
-    "Jubilacion":     50.00,
+    "Mod. 130 (trimestral)": 67.00,
+}
+
+AHORRO_INVERSION = {
+    "Jubilacion (acciones)": 50.00,
 }
 
 total_sobres = 0.0
@@ -237,18 +239,32 @@ with c3:
             st.rerun()
 
 st.markdown("---")
-st.markdown("**Pagos mensuales**")
-cols2 = st.columns(3)
+st.markdown("**Mod. 130 - Pago trimestral**")
+st.caption("Se paga en Abril, Julio, Octubre y Enero. Aparta 1/3 cada mes.")
+meses_pago_130 = [1, 4, 7, 10]
 for i, (nombre, importe) in enumerate(SOBRES_MENSUALES.items()):
-    with cols2[i]:
-        val = st.number_input(nombre, min_value=0.0, max_value=1000.0,
-                              value=importe, step=0.5, key=f"smen_{i}_{mi}_{anio}")
-        sobres_vals[nombre] = val
-        total_sobres += val
-        st.caption(f"{val:.2f} EUR/mes")
+    val = st.number_input(nombre, min_value=0.0, max_value=1000.0,
+                          value=importe, step=0.5, key=f"smen_{i}_{mi}_{anio}")
+    sobres_vals[nombre] = val / 3
+    total_sobres += val / 3
+    st.caption(f"Apartando {val/3:.2f} EUR/mes → {val:.2f} EUR al trimestre")
+    if mi in meses_pago_130:
+        st.warning(f"⚠️ Este mes toca pagar el Mod. 130: {val:.2f} EUR")
 
 total_mensuales = sum(sobres_vals[k] for k in SOBRES_MENSUALES)
-st.info(f"Total pagos mensuales: {total_mensuales:.2f} EUR/mes")
+st.info(f"Total Mod. 130 mensualizado: {total_mensuales:.2f} EUR/mes")
+
+st.markdown("---")
+st.markdown("**Ahorro inversión**")
+st.caption("Dinero para invertir en acciones pensando en la jubilación.")
+total_ahorro = 0.0
+for i, (nombre, importe) in enumerate(AHORRO_INVERSION.items()):
+    val = st.number_input(nombre, min_value=0.0, max_value=1000.0,
+                          value=importe, step=0.5, key=f"ahorro_{i}_{mi}_{anio}")
+    total_ahorro += val
+    st.caption(f"{val:.2f} EUR/mes")
+total_sobres += total_ahorro
+st.info(f"Total ahorro inversión: {total_ahorro:.2f} EUR/mes")
 
 st.markdown("---")
 st.write(f"**Total Trade Republic: {total_sobres:.2f} EUR**")
@@ -261,6 +277,7 @@ st.subheader("Gastos del mes")
 tab_bbva, tab_efectivo = st.tabs(["BBVA", "Gastos Efectivo"])
 
 GASTOS_BBVA = {
+    "Cuota Autonomo":          88.72,
     "Adeslas (seguro medico)": 30.27,
     "Movil Mama":              29.90,
     "Tinta HP":                 7.99,
@@ -402,7 +419,8 @@ with st.expander("Ver desglose completo"):
     st.markdown("---")
     st.markdown("**Trade Republic:**")
     st.write(f"- Pagos anuales: {total_anuales:.2f} EUR/mes")
-    st.write(f"- Pagos mensuales: {total_mensuales:.2f} EUR")
+    st.write(f"- Mod. 130 (mensualizado): {total_mensuales:.2f} EUR")
+    st.write(f"- Ahorro inversion: {total_ahorro:.2f} EUR")
     for nombre_t, importe_t in st.session_state[key_tr_extra]:
         st.write(f"- {nombre_t}: {importe_t:.2f} EUR")
     st.write(f"**= Total Trade Republic: {total_sobres:.2f} EUR**")
@@ -414,7 +432,12 @@ with st.expander("Ver desglose completo"):
         st.write(f"- {nombre_b}: {importe_b:.2f} EUR")
     st.write(f"**= Total BBVA: {total_fijos:.2f} EUR**")
     st.markdown("---")
-    st.write(f"**Gastos Efectivo:** {total_extras:.2f} EUR")
+    st.markdown("**Gastos Efectivo:**")
+    for gasto, importe in GASTOS_EXTRA_DEF.items():
+        st.write(f"- {gasto}: {importe:.2f} EUR")
+    for nombre_g, importe_g in st.session_state[key_ge_extra]:
+        st.write(f"- {nombre_g}: {importe_g:.2f} EUR")
+    st.write(f"**= Total Efectivo: {total_extras:.2f} EUR**")
     st.markdown("---")
     st.write(f"**Ingresos:** {total_ingresos:.2f} EUR")
     st.write(f"**- Trade Republic:** -{total_sobres:.2f} EUR")

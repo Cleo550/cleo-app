@@ -221,7 +221,7 @@ key_lineas = f"lineas_extra_{cn}_{mi}_{anio}"
 if key_lineas not in st.session_state:
     st.session_state[key_lineas] = []
 img_bytes = generar_imagen(cn, c, mi, anio, dias_actuales, num_factura, st.session_state[key_lineas])
-zoom = st.slider("Zoom", min_value=50, max_value=200, value=100, step=10, format="%d%%")
+zoom = st.select_slider("Zoom", options=[50,75,100,125,150,175,200], value=100, format_func=lambda x: f"{x}%")
 st.image(img_bytes, width=int(700 * zoom / 100))
 
 st.markdown("---")
