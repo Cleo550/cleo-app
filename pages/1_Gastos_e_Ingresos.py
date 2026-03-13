@@ -232,7 +232,6 @@ for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
     total_sobres += val_mes
 
 total_anuales = sum(sobres_vals[k] for k in SOBRES_ANUALES)
-st.info(f"Total pagos anuales: {total_anuales:.2f} EUR/mes · Al año: {total_anuales*12:.2f} EUR")
 
 key_tr_extra = f"tr_extra_{mi}_{anio}"
 if key_tr_extra not in st.session_state:
@@ -251,6 +250,9 @@ if st.session_state[key_tr_extra]:
                 set_dato(key_tr_extra, st.session_state[key_tr_extra])
                 st.rerun()
         total_sobres += importe_t
+
+total_anuales = total_sobres
+st.info(f"Total pagos anuales: {total_anuales:.2f} EUR/mes · Al año: {total_anuales*12:.2f} EUR")
 
 c1, c2, c3 = st.columns([2, 1, 1])
 with c1:
