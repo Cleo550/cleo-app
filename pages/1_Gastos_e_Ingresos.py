@@ -190,10 +190,11 @@ for i, (nombre, (mensual, anual)) in enumerate(SOBRES_ANUALES.items()):
         )
     with c2:
         val_mes_calc = round(val_anual / 12, 2)
-        val_mes = st.number_input(
+        st.number_input(
             f"Al mes", min_value=0.0, max_value=500.0,
             value=val_mes_calc, step=0.5, key=f"san_{i}_{mi}_{anio}",
         )
+        val_mes = val_mes_calc
     sobres_vals[nombre] = val_mes
     total_sobres += val_mes
 
