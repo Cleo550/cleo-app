@@ -47,6 +47,24 @@ def get_todos_sobres():
     except:
         return {}
 
+def get_valor_historico(prefijo, mi, anio, defecto):
+    """Busca el valor para este mes; si no hay, coge el último mes anterior guardado."""
+    clave = f"{prefijo}_{mi}_{anio}"
+    val = get_dato(clave, None)
+    if val is not None:
+        return float(val), clave
+    # Buscar hacia atrás 24 meses
+    m, a = mi, anio
+    for _ in range(24):
+        m -= 1
+        if m == 0:
+            m = 12
+            a -= 1
+        val_ant = get_dato(f"{prefijo}_{m}_{a}", None)
+        if val_ant is not None:
+            return float(val_ant), clave
+    return defecto, clave
+
 def get_sobre_anual(nombre, mi, anio, defecto, todos):
     """Busca el valor del sobre para este mes, si no hay busca el último mes anterior con dato."""
     clave = f"sobre_anual_{nombre.replace(' ','_')}_{mi}_{anio}"
@@ -333,8 +351,7 @@ meses_pago_130 = [1, 4, 7, 10]
 # Aviso el mes anterior al pago
 meses_aviso_130 = [12, 3, 6, 9]
 for i, (nombre, importe) in enumerate(SOBRES_MENSUALES.items()):
-    clave_130 = f"mod130_{nombre.replace(' ','_')}_{mi}_{anio}"
-    val_guardado_130 = float(get_dato(clave_130, importe))
+    val_guardado_130, clave_130 = get_valor_historico(f"mod130_{nombre.replace(' ','_')}", mi, anio, importe)
     val = st.number_input(nombre, min_value=0.0, max_value=1000.0,
                           value=val_guardado_130, step=0.5, key=f"smen_{i}_{mi}_{anio}")
     if val != val_guardado_130:
@@ -353,8 +370,7 @@ st.markdown("**Ahorro inversión**")
 st.caption("Dinero para invertir en acciones pensando en la jubilación.")
 total_ahorro = 0.0
 for i, (nombre, importe) in enumerate(AHORRO_INVERSION.items()):
-    clave_ahorro = f"ahorro_{nombre.replace(' ','_')}_{mi}_{anio}"
-    val_guardado_ahorro = float(get_dato(clave_ahorro, importe))
+    val_guardado_ahorro, clave_ahorro = get_valor_historico(f"ahorro_{nombre.replace(' ','_')}", mi, anio, importe)
     val = st.number_input(nombre, min_value=0.0, max_value=1000.0,
                           value=val_guardado_ahorro, step=0.5, key=f"ahorro_{i}_{mi}_{anio}")
     if val != val_guardado_ahorro:
@@ -385,8 +401,7 @@ GASTOS_BBVA = {
 with tab_bbva:
     total_fijos = 0.0
     for gasto, importe in GASTOS_BBVA.items():
-        clave_bbva = f"bbva_{gasto.replace(' ','_')}_{mi}_{anio}"
-        val_guardado_bbva = float(get_dato(clave_bbva, importe))
+        val_guardado_bbva, clave_bbva = get_valor_historico(f"bbva_{gasto.replace(' ','_')}", mi, anio, importe)
         c1, c2 = st.columns([2, 1])
         with c1:
             st.write(gasto)
@@ -448,8 +463,7 @@ GASTOS_EXTRA_DEF = {
 with tab_efectivo:
     total_extras = 0.0
     for gasto, importe in GASTOS_EXTRA_DEF.items():
-        clave_ef = f"efectivo_{gasto.replace(' ','_')}_{mi}_{anio}"
-        val_guardado_ef = float(get_dato(clave_ef, importe))
+        val_guardado_ef, clave_ef = get_valor_historico(f"efectivo_{gasto.replace(' ','_')}", mi, anio, importe)
         c1, c2 = st.columns([2, 1])
         with c1:
             st.write(gasto)
