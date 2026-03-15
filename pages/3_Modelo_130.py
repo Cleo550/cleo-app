@@ -146,10 +146,9 @@ for cn, c in CLIS.items():
     for mi in meses_acumulados:
         num = get_dato_local(datos, f"dias_{cn}_{mi}_{anio}", None)
         if num is None:
-            num_dias = dias_calendario(CLIS_DIAS[cn], mi, anio)
-        else:
-            num_dias = int(num)
-        ingreso_mes = num_dias * c["h"] * c["t"]
+            # Mes sin dato guardado = aún no ha pasado, no contar
+            continue
+        ingreso_mes = int(num) * c["h"] * c["t"]
         lineas = get_dato_local(datos, f"lineas_extra_{cn}_{mi}_{anio}", [])
         for _, precio in lineas:
             ingreso_mes += precio
