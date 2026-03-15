@@ -98,9 +98,24 @@ with col2:
     anio = st.number_input("Año", min_value=2024, max_value=2035,
                             value=datetime.now().year, step=1)
 
-meses_trim = TRIMESTRES[trimestre]
+ALTA_MES = 3
+ALTA_ANIO = 2026
+
+meses_trim_base = TRIMESTRES[trimestre]
 t_num = list(TRIMESTRES.keys()).index(trimestre) + 1
 trimestre_key = f"T{t_num}_{int(anio)}"
+
+# Filtrar meses anteriores al alta
+if int(anio) == ALTA_ANIO:
+    meses_trim = [m for m in meses_trim_base if m >= ALTA_MES]
+elif int(anio) < ALTA_ANIO:
+    meses_trim = []
+else:
+    meses_trim = meses_trim_base
+
+if not meses_trim:
+    st.warning("No hay actividad en este trimestre (antes del alta como autónoma el 2 de marzo de 2026).")
+    st.stop()
 
 # Cargar todos los datos de una vez
 datos = cargar_todos_datos()
