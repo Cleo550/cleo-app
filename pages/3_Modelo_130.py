@@ -188,21 +188,20 @@ else:
 total_gastos_ded += cuota_autonomo
 
 # 2. Facturas subidas del trimestre
-st.write(f"**Facturas de gastos subidas (acumulado hasta T{t_num} {int(anio)}):**")
+st.write(f"**Facturas de gastos subidas (T{t_num} {int(anio)}):**")
 facturas_trim_total = 0.0
 adeslas_trim = 0.0
-# Sumar facturas de todos los trimestres acumulados
-for t in range(1, t_num + 1):
-    facs = cargar_facturas_trim(f"T{t}_{int(anio)}")
-    for fac in facs:
+# Solo las facturas del trimestre actual
+if facturas:
+    for fac in facturas:
         importe = float(fac["importe"])
         nombre = fac["nombre"]
         if "adeslas" in nombre.lower() or "seguro salud" in nombre.lower():
             adeslas_trim += importe
         facturas_trim_total += importe
-        st.write(f"  · T{t} · {nombre}: {importe:.2f} EUR — *100% deducible*")
-if facturas_trim_total == 0:
-    st.caption("No hay facturas registradas")
+        st.write(f"  · {nombre}: {importe:.2f} EUR — *100% deducible*")
+else:
+    st.caption("No hay facturas registradas para este trimestre")
 
 # Aviso Adeslas si supera 500€/año
 if adeslas_trim > 0:
