@@ -123,9 +123,14 @@ facturas = cargar_facturas_trim(trimestre_key)
 
 st.markdown("---")
 
+# Meses acumulados desde inicio del año (o desde el alta) hasta fin del trimestre
+meses_acumulados = [m for m in range(1, meses_trim[-1] + 1)
+                    if int(anio) > ALTA_ANIO or m >= ALTA_MES]
+
 # --- INGRESOS ---
 st.subheader("📥 Ingresos con factura")
 st.caption("Solo Lola y Yordhana (tienen factura legal). Ania cobra en efectivo y no cuenta.")
+st.caption(f"Acumulado desde {'el alta' if int(anio) == ALTA_ANIO else 'enero'} hasta fin de {MESES[meses_trim[-1]-1]}")
 
 total_ingresos = 0.0
 
@@ -138,15 +143,13 @@ CLIS_DIAS = {"Lola": [2], "Yordhana": [3]}  # miércoles, jueves
 
 for cn, c in CLIS.items():
     ingreso_cliente = 0.0
-    for mi in meses_trim:
+    for mi in meses_acumulados:
         num = get_dato_local(datos, f"dias_{cn}_{mi}_{anio}", None)
         if num is None:
-            # Calcular del calendario si no hay dato guardado
             num_dias = dias_calendario(CLIS_DIAS[cn], mi, anio)
         else:
             num_dias = int(num)
         ingreso_mes = num_dias * c["h"] * c["t"]
-        # Líneas extra
         lineas = get_dato_local(datos, f"lineas_extra_{cn}_{mi}_{anio}", [])
         for _, precio in lineas:
             ingreso_mes += precio
@@ -154,7 +157,7 @@ for cn, c in CLIS.items():
     total_ingresos += ingreso_cliente
     st.write(f"- **{cn}**: {ingreso_cliente:.2f} EUR")
 
-st.metric("Total ingresos", f"{total_ingresos:.2f} EUR")
+st.metric("Total ingresos acumulado", f"{total_ingresos:.2f} EUR")
 
 st.markdown("---")
 
@@ -170,7 +173,7 @@ FECHA_ALTA_ANIO = 2026
 
 cuota_autonomo = 0.0
 meses_con_cuota = []
-for mi in meses_trim:
+for mi in meses_acumulados:
     # Solo contar meses desde el alta
     if int(anio) > FECHA_ALTA_ANIO or (int(anio) == FECHA_ALTA_ANIO and mi >= FECHA_ALTA_MES):
         v = buscar_historico(datos, "bbva_Cuota_Autónomo", mi, anio,
@@ -185,20 +188,21 @@ else:
 total_gastos_ded += cuota_autonomo
 
 # 2. Facturas subidas del trimestre
-st.write(f"**Facturas de gastos subidas (T{t_num} {int(anio)}):**")
+st.write(f"**Facturas de gastos subidas (acumulado hasta T{t_num} {int(anio)}):**")
 facturas_trim_total = 0.0
 adeslas_trim = 0.0
-if facturas:
-    for fac in facturas:
+# Sumar facturas de todos los trimestres acumulados
+for t in range(1, t_num + 1):
+    facs = cargar_facturas_trim(f"T{t}_{int(anio)}")
+    for fac in facs:
         importe = float(fac["importe"])
         nombre = fac["nombre"]
-        # Detectar Adeslas para control del límite 500€/año
         if "adeslas" in nombre.lower() or "seguro salud" in nombre.lower():
             adeslas_trim += importe
         facturas_trim_total += importe
-        st.write(f"  · {nombre}: {importe:.2f} EUR — *100% deducible*")
-else:
-    st.caption("No hay facturas registradas para este trimestre")
+        st.write(f"  · T{t} · {nombre}: {importe:.2f} EUR — *100% deducible*")
+if facturas_trim_total == 0:
+    st.caption("No hay facturas registradas")
 
 # Aviso Adeslas si supera 500€/año
 if adeslas_trim > 0:
@@ -227,7 +231,15 @@ st.subheader("🧮 Cálculo Modelo 130")
 
 beneficio = total_ingresos - total_gastos_ded
 retencion = max(0.0, beneficio * 0.20)
-pagos_anteriores = float(get_dato_local(datos, f"mod130_pagado_{int(anio)}", 0.0))
+# Sumar lo pagado en trimestres anteriores de este año
+pagos_anteriores = 0.0
+for t in range(1, t_num):
+    pagado_t = get_dato_local(datos, f"mod130_pagado_t{t}_{int(anio)}", False)
+    if pagado_t:
+        # Recuperar el importe pagado en ese trimestre
+        importe_t = float(get_dato_local(datos, f"mod130_importe_t{t}_{int(anio)}", 0.0))
+        pagos_anteriores += importe_t
+
 a_ingresar = max(0.0, retencion - pagos_anteriores)
 
 col1, col2, col3 = st.columns(3)
@@ -255,12 +267,12 @@ if ya_pagado:
     st.success(f"T{t_num} ya pagado: {a_ingresar:.2f} EUR")
     if st.button("↩️ Desmarcar como pagado"):
         set_dato(pagado_key, False)
-        set_dato(f"mod130_pagado_{int(anio)}", max(0, pagos_anteriores - a_ingresar))
+        set_dato(f"mod130_importe_t{t_num}_{int(anio)}", 0.0)
         st.rerun()
 else:
     if st.button(f"💳 Marcar T{t_num} como pagado ({a_ingresar:.2f} EUR)", type="primary"):
         set_dato(pagado_key, True)
-        set_dato(f"mod130_pagado_{int(anio)}", pagos_anteriores + a_ingresar)
+        set_dato(f"mod130_importe_t{t_num}_{int(anio)}", a_ingresar)
         st.rerun()
 
 st.markdown("---")
