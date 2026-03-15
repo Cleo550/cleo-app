@@ -116,14 +116,12 @@ total_ingresos = 0.0
 for cn, c in CLIS.items():
     ingreso_cliente = 0.0
     for mi in meses_trim:
-        # Leer lista de días trabajados
-        dias = get_dato_local(datos, f"dias_mod_{cn}_{mi}_{anio}", None)
-        if dias is None:
-            # Si no hay modificación guardada, usar número de días base
-            num = get_dato_local(datos, f"dias_{cn}_{mi}_{anio}", 0)
-            ingreso_mes = int(num) * c["h"] * c["t"]
+        # Número de días guardado en Supabase
+        num = get_dato_local(datos, f"dias_{cn}_{mi}_{anio}", None)
+        if num is None:
+            ingreso_mes = 0.0
         else:
-            ingreso_mes = len(dias) * c["h"] * c["t"]
+            ingreso_mes = int(num) * c["h"] * c["t"]
         # Líneas extra
         lineas = get_dato_local(datos, f"lineas_extra_{cn}_{mi}_{anio}", [])
         for _, precio in lineas:
@@ -142,12 +140,24 @@ st.subheader("📤 Gastos deducibles")
 total_gastos_ded = 0.0
 
 # 1. Cuota autónomo
+# Alta de autónoma: 2 de marzo de 2026
+FECHA_ALTA_MES = 3
+FECHA_ALTA_ANIO = 2026
+
 cuota_autonomo = 0.0
+meses_con_cuota = []
 for mi in meses_trim:
-    v = buscar_historico(datos, "bbva_Cuota_Autónomo", mi, anio,
-        buscar_historico(datos, "bbva_Cuota_Autonomo", mi, anio, 88.72))
-    cuota_autonomo += v
-st.write(f"- **Cuota Autónomo** ({len(meses_trim)} meses): {cuota_autonomo:.2f} EUR — *100% deducible*")
+    # Solo contar meses desde el alta
+    if int(anio) > FECHA_ALTA_ANIO or (int(anio) == FECHA_ALTA_ANIO and mi >= FECHA_ALTA_MES):
+        v = buscar_historico(datos, "bbva_Cuota_Autónomo", mi, anio,
+            buscar_historico(datos, "bbva_Cuota_Autonomo", mi, anio, 88.72))
+        cuota_autonomo += v
+        meses_con_cuota.append(MESES[mi-1])
+
+if meses_con_cuota:
+    st.write(f"- **Cuota Autónomo** ({', '.join(meses_con_cuota)}): {cuota_autonomo:.2f} EUR — *100% deducible*")
+else:
+    st.write(f"- **Cuota Autónomo**: 0.00 EUR (antes del alta)")
 total_gastos_ded += cuota_autonomo
 
 # 2. Adeslas — deducible hasta 500€/año
