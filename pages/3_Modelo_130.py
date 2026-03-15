@@ -1,4 +1,5 @@
 import streamlit as st
+import calendar as cal_module
 import json
 from supabase import create_client
 from datetime import datetime
@@ -99,7 +100,7 @@ with col2:
 
 meses_trim = TRIMESTRES[trimestre]
 t_num = list(TRIMESTRES.keys()).index(trimestre) + 1
-trimestre_key = f"T{t_num}-{int(anio)}"
+trimestre_key = f"T{t_num}_{int(anio)}"
 
 # Cargar todos los datos de una vez
 datos = cargar_todos_datos()
@@ -113,15 +114,23 @@ st.caption("Solo Lola y Yordhana (tienen factura legal). Ania cobra en efectivo 
 
 total_ingresos = 0.0
 
+def dias_calendario(weekdays, mi, anio):
+    """Cuenta días del mes que caen en los días de la semana indicados."""
+    c = cal_module.Calendar()
+    return len([d for d, ds in c.itermonthdays2(int(anio), mi) if d != 0 and ds in weekdays])
+
+CLIS_DIAS = {"Lola": [2], "Yordhana": [3]}  # miércoles, jueves
+
 for cn, c in CLIS.items():
     ingreso_cliente = 0.0
     for mi in meses_trim:
-        # Número de días guardado en Supabase
         num = get_dato_local(datos, f"dias_{cn}_{mi}_{anio}", None)
         if num is None:
-            ingreso_mes = 0.0
+            # Calcular del calendario si no hay dato guardado
+            num_dias = dias_calendario(CLIS_DIAS[cn], mi, anio)
         else:
-            ingreso_mes = int(num) * c["h"] * c["t"]
+            num_dias = int(num)
+        ingreso_mes = num_dias * c["h"] * c["t"]
         # Líneas extra
         lineas = get_dato_local(datos, f"lineas_extra_{cn}_{mi}_{anio}", [])
         for _, precio in lineas:
@@ -160,35 +169,38 @@ else:
     st.write(f"- **Cuota Autónomo**: 0.00 EUR (antes del alta)")
 total_gastos_ded += cuota_autonomo
 
-# 2. Adeslas — deducible hasta 500€/año
-adeslas_trim = 0.0
-for mi in meses_trim:
-    v = buscar_historico(datos, "bbva_Adeslas", mi, anio, 30.27)
-    adeslas_trim += v
-
-# Calcular total Adeslas del año para avisar si supera 500€
-adeslas_anio = 0.0
-for mi in range(1, 13):
-    v = buscar_historico(datos, "bbva_Adeslas", mi, anio, 30.27)
-    adeslas_anio += v
-
-adeslas_deducible = min(adeslas_trim, max(0, 500.0 - (adeslas_anio - adeslas_trim)))
-st.write(f"- **Adeslas** (este trimestre): {adeslas_trim:.2f} EUR → deducible: {adeslas_deducible:.2f} EUR — *hasta 500€/año*")
-if adeslas_anio > 500:
-    st.warning(f"⚠️ Adeslas acumulado en {int(anio)}: {adeslas_anio:.2f} EUR — **superas el límite de 500€/año**. Solo puedes deducir 500€ en total.")
-elif adeslas_anio > 400:
-    st.warning(f"⚠️ Adeslas acumulado en {int(anio)}: {adeslas_anio:.2f} EUR — te quedan {500-adeslas_anio:.2f} EUR para llegar al límite de 500€.")
-total_gastos_ded += adeslas_deducible
-
-# 3. Facturas subidas del trimestre
+# 2. Facturas subidas del trimestre
 st.write(f"**Facturas de gastos subidas (T{t_num} {int(anio)}):**")
 facturas_trim_total = 0.0
+adeslas_trim = 0.0
 if facturas:
     for fac in facturas:
-        st.write(f"  · {fac['nombre']}: {float(fac['importe']):.2f} EUR — *100% deducible*")
-        facturas_trim_total += float(fac['importe'])
+        importe = float(fac["importe"])
+        nombre = fac["nombre"]
+        # Detectar Adeslas para control del límite 500€/año
+        if "adeslas" in nombre.lower() or "seguro salud" in nombre.lower():
+            adeslas_trim += importe
+        facturas_trim_total += importe
+        st.write(f"  · {nombre}: {importe:.2f} EUR — *100% deducible*")
 else:
     st.caption("No hay facturas registradas para este trimestre")
+
+# Aviso Adeslas si supera 500€/año
+if adeslas_trim > 0:
+    # Sumar Adeslas de otros trimestres del año
+    adeslas_otros = 0.0
+    for t in range(1, 5):
+        if t != t_num:
+            facs_t = cargar_facturas_trim(f"T{t}_{int(anio)}")
+            for fac in facs_t:
+                if "adeslas" in fac["nombre"].lower() or "seguro salud" in fac["nombre"].lower():
+                    adeslas_otros += float(fac["importe"])
+    adeslas_anio = adeslas_trim + adeslas_otros
+    if adeslas_anio > 500:
+        st.warning(f"⚠️ Adeslas acumulado en {int(anio)}: {adeslas_anio:.2f} EUR — **superas el límite de 500€/año**. Solo puedes deducir 500€ en total.")
+    elif adeslas_anio > 400:
+        st.warning(f"⚠️ Adeslas acumulado en {int(anio)}: {adeslas_anio:.2f} EUR — te quedan {500-adeslas_anio:.2f} EUR para llegar al límite.")
+
 total_gastos_ded += facturas_trim_total
 
 st.metric("Total gastos deducibles", f"{total_gastos_ded:.2f} EUR")
