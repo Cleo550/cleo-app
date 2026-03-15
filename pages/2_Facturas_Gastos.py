@@ -114,10 +114,7 @@ else:
             if f.get("archivo_url"):
                 url = f["archivo_url"]
                 ext = url.split(".")[-1].lower()
-                if ext in ["jpg","jpeg","png"]:
-                    st.image(url, use_container_width=True)
-                else:
-                    st.markdown(f"📄 [Ver archivo]({url})")
+                st.markdown(f"📄 [Ver archivo]({url})")
                 st.download_button("⬇️ Descargar", url, file_name=f"{f['nombre']}.{ext}",
                                    key=f"dl_{f['id']}")
             st.markdown("---")

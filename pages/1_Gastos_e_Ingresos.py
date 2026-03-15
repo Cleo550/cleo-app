@@ -333,8 +333,12 @@ meses_pago_130 = [1, 4, 7, 10]
 # Aviso el mes anterior al pago
 meses_aviso_130 = [12, 3, 6, 9]
 for i, (nombre, importe) in enumerate(SOBRES_MENSUALES.items()):
+    clave_130 = f"mod130_{nombre.replace(' ','_')}_{mi}_{anio}"
+    val_guardado_130 = float(get_dato(clave_130, importe))
     val = st.number_input(nombre, min_value=0.0, max_value=1000.0,
-                          value=importe, step=0.5, key=f"smen_{i}_{mi}_{anio}")
+                          value=val_guardado_130, step=0.5, key=f"smen_{i}_{mi}_{anio}")
+    if val != val_guardado_130:
+        set_dato(clave_130, val)
     sobres_vals[nombre] = val / 3
     total_sobres += val / 3
     st.caption(f"Apartando {val/3:.2f} EUR/mes → {val:.2f} EUR al trimestre")
@@ -349,8 +353,12 @@ st.markdown("**Ahorro inversión**")
 st.caption("Dinero para invertir en acciones pensando en la jubilación.")
 total_ahorro = 0.0
 for i, (nombre, importe) in enumerate(AHORRO_INVERSION.items()):
+    clave_ahorro = f"ahorro_{nombre.replace(' ','_')}_{mi}_{anio}"
+    val_guardado_ahorro = float(get_dato(clave_ahorro, importe))
     val = st.number_input(nombre, min_value=0.0, max_value=1000.0,
-                          value=importe, step=0.5, key=f"ahorro_{i}_{mi}_{anio}")
+                          value=val_guardado_ahorro, step=0.5, key=f"ahorro_{i}_{mi}_{anio}")
+    if val != val_guardado_ahorro:
+        set_dato(clave_ahorro, val)
     total_ahorro += val
     st.caption(f"{val:.2f} EUR/mes")
 total_sobres += total_ahorro
@@ -377,13 +385,17 @@ GASTOS_BBVA = {
 with tab_bbva:
     total_fijos = 0.0
     for gasto, importe in GASTOS_BBVA.items():
+        clave_bbva = f"bbva_{gasto.replace(' ','_')}_{mi}_{anio}"
+        val_guardado_bbva = float(get_dato(clave_bbva, importe))
         c1, c2 = st.columns([2, 1])
         with c1:
             st.write(gasto)
         with c2:
             val = st.number_input(f"EUR {gasto}", min_value=0.0, max_value=2000.0,
-                                   value=importe, step=0.5, label_visibility="collapsed",
+                                   value=val_guardado_bbva, step=0.5, label_visibility="collapsed",
                                    key=f"gf_{gasto}_{mi}_{anio}")
+            if val != val_guardado_bbva:
+                set_dato(clave_bbva, val)
             total_fijos += val
 
     key_bbva_extra = f"bbva_extra_{mi}_{anio}"
@@ -436,13 +448,17 @@ GASTOS_EXTRA_DEF = {
 with tab_efectivo:
     total_extras = 0.0
     for gasto, importe in GASTOS_EXTRA_DEF.items():
+        clave_ef = f"efectivo_{gasto.replace(' ','_')}_{mi}_{anio}"
+        val_guardado_ef = float(get_dato(clave_ef, importe))
         c1, c2 = st.columns([2, 1])
         with c1:
             st.write(gasto)
         with c2:
             val = st.number_input(f"EUR extra {gasto}", min_value=0.0, max_value=2000.0,
-                                   value=importe, step=1.0, label_visibility="collapsed",
+                                   value=val_guardado_ef, step=1.0, label_visibility="collapsed",
                                    key=f"ge_{gasto}_{mi}_{anio}")
+            if val != val_guardado_ef:
+                set_dato(clave_ef, val)
             total_extras += val
 
     key_ge_extra = f"gastos_extra_{mi}_{anio}"
