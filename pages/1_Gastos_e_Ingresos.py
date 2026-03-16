@@ -124,6 +124,15 @@ def calcular_dias_mes(cliente_data, anio, mes_idx):
     return [d for s in cal.monthdays2calendar(anio, mes_idx)
             for d, ds in s if d != 0 and ds in cliente_data["w"]]
 
+# Botón subir arriba
+st.markdown('<a href="#top" id="top"></a>', unsafe_allow_html=True)
+st.markdown("""
+<style>
+#btn-subir {position:fixed;bottom:70px;right:20px;z-index:9999;}
+</style>
+<div id="btn-subir"><a href="#top"><button style="background:#ff4b4b;color:white;border:none;border-radius:50%;width:45px;height:45px;font-size:20px;cursor:pointer;">↑</button></a></div>
+""", unsafe_allow_html=True)
+
 # --- SELECTOR MES Y AÑO ---
 col_mes, col_anio = st.columns(2)
 with col_mes:
