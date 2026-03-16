@@ -394,15 +394,16 @@ trimestre_actual = (mi - 1) // 3 + 1
 meses_trimestre = {1: [1,2,3], 2: [4,5,6], 3: [7,8,9], 4: [10,11,12]}[trimestre_actual]
 CLIS_130 = {"Lola": {"t": 14.0, "h": 4.0, "w": [2]}, "Yordhana": {"t": 14.0, "h": 4.0, "w": [3]}}
 
-# --- REAL: facturas subidas + autónomo ---
+# --- REAL: facturas subidas + autónomo (solo hasta el mes actual) ---
+meses_real = [m for m in meses_trimestre if m <= mi]
 ingresos_real = 0.0
 for cn, c in CLIS_130.items():
-    for m in meses_trimestre:
+    for m in meses_real:
         num = get_dato(f"dias_{cn}_{m}_{anio}", None)
         num_dias = int(num) if num is not None else len(calcular_dias_mes(c, int(anio), m))
         ingresos_real += num_dias * c["h"] * c["t"]
 
-cuota_real = sum(float(get_dato(f"bbva_Cuota_Autonomo_{m}_{anio}", 88.72)) for m in meses_trimestre)
+cuota_real = sum(float(get_dato(f"bbva_Cuota_Autonomo_{m}_{anio}", 88.72)) for m in meses_real)
 gastos_real = cuota_real
 beneficio_real = max(0.0, ingresos_real - gastos_real)
 mod130_real = round(beneficio_real * 0.20, 2)
@@ -423,27 +424,30 @@ st.info(f"Total Mod. 130 mensualizado: {mod130_mensual:.2f} EUR/mes")
 
 # --- PREVISIÓN: días teóricos + autónomo + Adeslas + RC solo Q1 desde 2027 ---
 with st.expander("📊 Previsión Mod. 130 (estimación)", expanded=False):
-    st.caption("Cálculo con días teóricos del calendario, autónomo, Adeslas y RC (solo Q1 desde 2027). No se suma al total.")
+    st.caption("Cálculo con días teóricos del calendario. No se suma al total.")
+
+    # Solo calcular hasta el mes actual dentro del trimestre
+    meses_prev = [m for m in meses_trimestre if m <= mi]
 
     ingresos_prev = 0.0
     for cn, c in CLIS_130.items():
-        for m in meses_trimestre:
+        for m in meses_prev:
             num_dias = len(calcular_dias_mes(c, int(anio), m))
             ingresos_prev += num_dias * c["h"] * c["t"]
 
-    cuota_prev = len(meses_trimestre) * 88.72
-    adeslas_prev = len(meses_trimestre) * 30.27
+    cuota_prev = len(meses_prev) * 88.72
+    adeslas_prev = len(meses_prev) * 30.27
     # RC solo en Q1 y solo desde 2027
-    rc_prev = 82.72 if (trimestre_actual == 1 and int(anio) >= 2027) else 0.0
+    rc_prev = 82.72 if (trimestre_actual == 1 and int(anio) >= 2027 and mi >= 1) else 0.0
     gastos_prev = cuota_prev + adeslas_prev + rc_prev
     beneficio_prev = max(0.0, ingresos_prev - gastos_prev)
     mod130_prev = round(beneficio_prev * 0.20, 2)
+    mod130_prev_mensual = round(mod130_prev / 3, 2)
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Ingresos teóricos", f"{ingresos_prev:.2f} €")
-    col2.metric("Gastos estimados", f"{gastos_prev:.2f} €")
-    col3.metric("Beneficio estimado", f"{beneficio_prev:.2f} €")
-    st.metric("🔮 Mod. 130 estimado", f"{mod130_prev:.2f} €")
+    st.info(f"**Previsión Q{trimestre_actual}** · Ingresos: {ingresos_prev:.2f}€ · Gastos: {gastos_prev:.2f}€ · Beneficio: {beneficio_prev:.2f}€")
+    col1, col2 = st.columns(2)
+    col1.metric("🔮 Mod. 130 estimado", f"{mod130_prev:.2f} €")
+    col2.metric("📅 Aparta este mes (1/3)", f"{mod130_prev_mensual:.2f} €")
     rc_txt = f"+ RC 82.72€" if rc_prev > 0 else "(RC no aplica este trimestre)"
     st.caption(f"Gastos: Autónomo {cuota_prev:.2f}€ + Adeslas {adeslas_prev:.2f}€ {rc_txt}")
 
