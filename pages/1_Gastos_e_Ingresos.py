@@ -132,9 +132,11 @@ if "anio_global" not in st.session_state:
 
 def sync_mes(key):
     st.session_state["mes_global"] = st.session_state[key]
+    st.rerun()
 
 def sync_anio(key):
     st.session_state["anio_global"] = st.session_state[key]
+    st.rerun()
 
 col_mes, col_anio = st.columns(2)
 with col_mes:
