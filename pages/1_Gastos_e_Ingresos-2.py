@@ -21,6 +21,11 @@ def check_password():
 
 check_password()
 
+# Cargar TODOS los datos de Supabase de una sola vez
+if "_todos_datos" not in st.session_state:
+    st.session_state["_todos_datos"] = cargar_todos_datos()
+_datos = st.session_state["_todos_datos"]
+
 
 # --- SUPABASE ---
 @st.cache_resource
@@ -29,7 +34,28 @@ def get_supabase():
 
 supabase = get_supabase()
 
+@st.cache_data(ttl=30)
+def cargar_todos_datos():
+    """Carga TODOS los datos de Supabase de una sola vez."""
+    try:
+        r = supabase.table("datos_app").select("clave,valor").execute()
+        result = {}
+        for row in r.data:
+            try:
+                result[row["clave"]] = json.loads(row["valor"])
+            except:
+                result[row["clave"]] = row["valor"]
+        return result
+    except:
+        return {}
+
+def get_dato_local(datos, clave, defecto):
+    return datos.get(clave, defecto)
+
 def get_dato(clave, defecto):
+    """Compatibilidad — usa el dict global si está disponible."""
+    if "_todos_datos" in st.session_state:
+        return st.session_state["_todos_datos"].get(clave, defecto)
     try:
         r = supabase.table("datos_app").select("valor").eq("clave", clave).execute()
         if r.data:
@@ -38,31 +64,24 @@ def get_dato(clave, defecto):
     except:
         return defecto
 
-@st.cache_data(ttl=60)
 def get_todos_sobres():
-    """Carga todos los datos de sobres de una vez."""
-    try:
-        r = supabase.table("datos_app").select("clave,valor").like("clave", "sobre_anual_%").execute()
-        return {row["clave"]: float(row["valor"]) for row in r.data}
-    except:
-        return {}
+    datos = st.session_state.get("_todos_datos", {})
+    return {k: float(v) for k, v in datos.items() if k.startswith("sobre_anual_")}
 
 def get_valor_historico(prefijo, mi, anio, defecto):
-    """Busca el valor para este mes; si no hay, coge el último mes anterior guardado."""
+    datos = st.session_state.get("_todos_datos", {})
     clave = f"{prefijo}_{mi}_{anio}"
-    val = get_dato(clave, None)
-    if val is not None:
-        return float(val), clave
-    # Buscar hacia atrás 24 meses
+    if clave in datos:
+        return float(datos[clave]), clave
     m, a = mi, anio
     for _ in range(24):
         m -= 1
         if m == 0:
             m = 12
             a -= 1
-        val_ant = get_dato(f"{prefijo}_{m}_{a}", None)
-        if val_ant is not None:
-            return float(val_ant), clave
+        clave_ant = f"{prefijo}_{m}_{a}"
+        if clave_ant in datos:
+            return float(datos[clave_ant]), clave
     return defecto, clave
 
 def get_sobre_anual(nombre, mi, anio, defecto, todos):
@@ -85,6 +104,10 @@ def get_sobre_anual(nombre, mi, anio, defecto, todos):
 def set_dato(clave, valor):
     try:
         supabase.table("datos_app").upsert({"clave": clave, "valor": json.dumps(valor)}).execute()
+        # Actualizar cache local
+        if "_todos_datos" in st.session_state:
+            st.session_state["_todos_datos"][clave] = valor
+        cargar_todos_datos.clear()
     except:
         pass
 
@@ -404,18 +427,23 @@ with tab_bbva:
     # Mod. 130 automático en meses de pago
     meses_pago_130 = [1, 4, 7, 10]
     if mi in meses_pago_130:
-        # Buscar el trimestre anterior para saber el importe
         t_anterior = {1: 4, 4: 1, 7: 2, 10: 3}[mi]
         anio_t = int(anio) - 1 if mi == 1 else int(anio)
-        importe_130 = float(get_dato(f"mod130_importe_t{t_anterior}_{anio_t}", 0.0))
+        # Leer importe calculado (aunque no esté pagado aún)
+        importe_130 = float(get_dato_local(_datos, f"mod130_importe_t{t_anterior}_{anio_t}", 0.0))
+        if importe_130 == 0.0:
+            importe_130 = float(get_dato_local(_datos, f"mod130_Mod._130_(trimestral)_1_{anio_t}", 0.0))
+        ya_pagado = get_dato_local(_datos, f"mod130_pagado_t{t_anterior}_{anio_t}", False)
         if importe_130 > 0:
             c1, c2 = st.columns([2, 1])
             with c1:
-                st.write(f"**Mod. 130 T{t_anterior} ({anio_t})** 🔴")
+                estado = "✅ Ya pagado" if ya_pagado else "🔴 Pendiente de pago"
+                st.write(f"**Mod. 130 T{t_anterior} ({anio_t})** — {estado}")
             with c2:
                 st.write(f"{importe_130:.2f} EUR")
             total_fijos += importe_130
-            st.warning(f"⚠️ Este mes toca pagar el Mod. 130: {importe_130:.2f} EUR")
+            if not ya_pagado:
+                st.warning(f"⚠️ Este mes toca pagar el Mod. 130 T{t_anterior}: {importe_130:.2f} EUR — Ve a la página Modelo 130 para presentarlo")
 
     for gasto, importe in GASTOS_BBVA.items():
         val_guardado_bbva, clave_bbva = get_valor_historico(f"bbva_{gasto.replace(' ','_')}", mi, anio, importe)
