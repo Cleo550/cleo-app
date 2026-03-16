@@ -394,20 +394,36 @@ trimestre_actual = (mi - 1) // 3 + 1
 meses_trimestre = {1: [1,2,3], 2: [4,5,6], 3: [7,8,9], 4: [10,11,12]}[trimestre_actual]
 CLIS_130 = {"Lola": {"t": 14.0, "h": 4.0, "w": [2]}, "Yordhana": {"t": 14.0, "h": 4.0, "w": [3]}}
 
-# --- REAL: trimestre completo, facturas subidas + 3x autónomo ---
+# Meses válidos: desde marzo 2026 (alta en SS)
+MES_ALTA, ANIO_ALTA = 3, 2026
+meses_validos = [m for m in meses_trimestre
+                 if (int(anio) > ANIO_ALTA) or (int(anio) == ANIO_ALTA and m >= MES_ALTA)]
+n_meses = len(meses_validos) if meses_validos else 1
+
+# --- REAL: ingresos reales + facturas gastos del trimestre + autónomo ---
 ingresos_real = 0.0
 for cn, c in CLIS_130.items():
-    for m in meses_trimestre:
+    for m in meses_validos:
         num = get_dato(f"dias_{cn}_{m}_{anio}", None)
         num_dias = int(num) if num is not None else len(calcular_dias_mes(c, int(anio), m))
         ingresos_real += num_dias * c["h"] * c["t"]
 
-cuota_real = sum(float(get_dato(f"bbva_Cuota_Autonomo_{m}_{anio}", 88.72)) for m in meses_trimestre)
-beneficio_real = max(0.0, ingresos_real - cuota_real)
+# Facturas gastos del trimestre desde Supabase
+try:
+    r = supabase.table("facturas_gastos").select("importe").eq(
+        "trimestre", f"T{trimestre_actual}_{anio}").execute()
+    facturas_gastos_trim = sum(float(f["importe"]) for f in r.data) if r.data else 0.0
+except:
+    facturas_gastos_trim = 0.0
+
+cuota_real = n_meses * 88.72
+gastos_real = cuota_real + facturas_gastos_trim
+beneficio_real = max(0.0, ingresos_real - gastos_real)
 mod130_real = round(beneficio_real * 0.20, 2)
 mod130_mensual = round(mod130_real / 3, 2)
 
-st.info(f"**Real Q{trimestre_actual}** · Ingresos: {ingresos_real:.2f}€ · Autónomo: {cuota_real:.2f}€ · Beneficio: {beneficio_real:.2f}€")
+st.info(f"**Real Q{trimestre_actual}** · Ingresos: {ingresos_real:.2f}€ · Gastos deducibles: {gastos_real:.2f}€ · Beneficio: {beneficio_real:.2f}€")
+st.caption(f"Gastos: Autónomo {cuota_real:.2f}€ + Facturas gastos {facturas_gastos_trim:.2f}€ ({n_meses} mes/es)")
 st.metric("💰 Mod. 130 a pagar", f"{mod130_real:.2f} €")
 st.metric("📅 Aparta este mes (1/3)", f"{mod130_mensual:.2f} €")
 
@@ -420,18 +436,18 @@ total_sobres += mod130_mensual
 total_mensuales = mod130_mensual
 st.info(f"Total Mod. 130 mensualizado: {mod130_mensual:.2f} EUR/mes")
 
-# --- PREVISIÓN: trimestre completo, días teóricos + 3x autónomo + 3x Adeslas + RC si Q1 desde 2027 ---
+# --- PREVISIÓN: días teóricos + autónomo + Adeslas + RC si Q1 desde 2027 ---
 with st.expander("📊 Previsión Mod. 130 (estimación)", expanded=False):
     st.caption("Cálculo con días teóricos del calendario. No se suma al total.")
 
     ingresos_prev = 0.0
     for cn, c in CLIS_130.items():
-        for m in meses_trimestre:
+        for m in meses_validos:
             num_dias = len(calcular_dias_mes(c, int(anio), m))
             ingresos_prev += num_dias * c["h"] * c["t"]
 
-    cuota_prev = 3 * 88.72
-    adeslas_prev = 3 * 30.27
+    cuota_prev = n_meses * 88.72
+    adeslas_prev = n_meses * 30.27
     rc_prev = 82.72 if (trimestre_actual == 1 and int(anio) >= 2027) else 0.0
     gastos_prev = cuota_prev + adeslas_prev + rc_prev
     beneficio_prev = max(0.0, ingresos_prev - gastos_prev)
@@ -443,7 +459,7 @@ with st.expander("📊 Previsión Mod. 130 (estimación)", expanded=False):
     col1.metric("🔮 Mod. 130 estimado", f"{mod130_prev:.2f} €")
     col2.metric("📅 Aparta este mes (1/3)", f"{mod130_prev_mensual:.2f} €")
     rc_txt = "+ RC 82.72€" if rc_prev > 0 else "(RC no aplica este trimestre)"
-    st.caption(f"Gastos: Autónomo {cuota_prev:.2f}€ + Adeslas {adeslas_prev:.2f}€ {rc_txt}")
+    st.caption(f"Gastos: Autónomo {cuota_prev:.2f}€ + Adeslas {adeslas_prev:.2f}€ {rc_txt} · {n_meses} mes/es")
 
 st.markdown("---")
 st.markdown("**Ahorro inversión**")
