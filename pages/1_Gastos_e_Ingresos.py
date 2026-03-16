@@ -219,15 +219,22 @@ st.metric("Total ingresos", f"{total_ingresos:.2f} EUR")
 st.divider()
 
 # --- SECCION 2: TRADE REPUBLIC ---
-col_m, col_a = st.columns(2)
+col_m, col_a, col_r = st.columns([2, 1, 1])
 with col_m:
     mes_nombre = st.selectbox("Mes", MESES, index=MESES.index(mes_nombre), key="mes__tr", label_visibility="collapsed")
 with col_a:
-    st.write(f"**{int(anio)}**")
+    anio = st.number_input("Año", min_value=2024, max_value=2035, value=int(anio), step=1, key="anio__tr", label_visibility="collapsed")
+with col_r:
+    if st.button("🔄", key="refresh_tr", help="Refrescar"):
+        st.session_state.pop("_todos_datos", None)
+        st.rerun()
 mi = MESES.index(mes_nombre) + 1
 
 st.subheader("Trade Republic")
 st.caption("Aparta este dinero nada mas cobrar. No lo toques.")
+if st.button("🔄 Refrescar", key="refresh_tr"):
+    cargar_todos_datos.clear()
+    st.rerun()
 
 SOBRES_ANUALES = {
     "Seguro Coche":     (25.0,  300.0),
@@ -279,19 +286,27 @@ for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
             st.markdown(f"### {val_mes:.2f} €")
         with c3:
             meses_str = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
-            mes_pago = st.selectbox("Mes de pago", list(range(1,13)),
-                                     index=mes_pago_guardado-1,
-                                     format_func=lambda x: meses_str[x-1],
-                                     key=f"mes_pago_{i}_{mi}_{anio}")
+            clave_anio_pago = f"sobre_anio_pago_{nombre.replace(' ','_')}"
+            anio_pago_guardado = int(get_dato(clave_anio_pago, int(anio)))
+            cp1, cp2 = st.columns(2)
+            with cp1:
+                mes_pago = st.selectbox("Mes", list(range(1,13)),
+                                         index=mes_pago_guardado-1,
+                                         format_func=lambda x: meses_str[x-1],
+                                         key=f"mes_pago_{i}_{mi}_{anio}")
+            with cp2:
+                anio_pago = st.number_input("Año", min_value=2024, max_value=2040,
+                                             value=anio_pago_guardado,
+                                             step=1, key=f"anio_pago_{i}_{mi}_{anio}")
             if mes_pago != mes_pago_guardado:
-                supabase.table("datos_app").upsert({
-                    "clave": clave_mes_pago,
-                    "valor": str(mes_pago)
-                }).execute()
+                supabase.table("datos_app").upsert({"clave": clave_mes_pago, "valor": str(mes_pago)}).execute()
+            if anio_pago != anio_pago_guardado:
+                supabase.table("datos_app").upsert({"clave": clave_anio_pago, "valor": str(anio_pago)}).execute()
         # Aviso mes anterior al pago
         mes_aviso = mes_pago - 1 if mes_pago > 1 else 12
-        if mi == mes_aviso:
-            st.warning(f"⚠️ El próximo mes toca pagar **{nombre}**: {val_anual:.2f} EUR ({meses_str[mes_pago-1]})")
+        anio_aviso = anio_pago if mes_pago > 1 else anio_pago - 1
+        if mi == mes_aviso and int(anio) == anio_aviso:
+            st.warning(f"⚠️ El próximo mes toca pagar **{nombre}**: {val_anual:.2f} EUR ({meses_str[mes_pago-1]} {anio_pago})")
     sobres_vals[nombre] = val_mes
     total_sobres += val_mes
 
@@ -392,6 +407,54 @@ for i, (nombre, importe) in enumerate(SOBRES_MENSUALES.items()):
 total_mensuales = sum(sobres_vals[k] for k in SOBRES_MENSUALES)
 st.info(f"Total Mod. 130 mensualizado: {total_mensuales:.2f} EUR/mes")
 
+# Previsión Mod.130 con gastos estimados
+with st.expander("📊 Previsión Mod. 130 (estimación)", expanded=False):
+    st.caption("Cálculo orientativo usando gastos estimados (cuota autónomo, Adeslas, RC Limpieza). No se suma al total.")
+    # Determinar trimestre actual
+    t_prev = (mi - 1) // 3 + 1
+    meses_t_prev = {1: [1,2,3], 2: [4,5,6], 3: [7,8,9], 4: [10,11,12]}[t_prev]
+    ALTA_MES_PREV = 3
+    ALTA_ANIO_PREV = 2026
+    if int(anio) == ALTA_ANIO_PREV:
+        meses_t_prev = [m for m in meses_t_prev if m >= ALTA_MES_PREV]
+
+    CLIS_PREV = {"Lola": {"t": 14.0, "h": 4.0, "w": [2]}, "Yordhana": {"t": 14.0, "h": 4.0, "w": [3]}}
+    ingresos_prev = 0.0
+    for cn, c in CLIS_PREV.items():
+        for m in meses_t_prev:
+            num = get_dato_local(_datos, f"dias_{cn}_{m}_{anio}", None)
+            if num is None:
+                num_dias = len(calcular_dias_mes(c, int(anio), m))
+            else:
+                num_dias = int(num)
+            ingresos_prev += num_dias * c["h"] * c["t"]
+
+    # Cuota autónomo: coger valor guardado en BBVA para cada mes del trimestre
+    cuota_prev = 0.0
+    adeslas_prev = 0.0
+    for m_t in meses_t_prev:
+        cuota_prev += float(get_dato(f"bbva_Cuota_Autonomo_{m_t}_{anio}", 88.72))
+        adeslas_prev += float(get_dato(f"bbva_Adeslas_{m_t}_{anio}", 30.27))
+    # RC: solo incluirlo si el mes de pago cae en el trimestre actual
+    clave_mes_rc = "sobre_mes_pago_RC_Limpieza"
+    clave_anio_rc = "sobre_anio_pago_RC_Limpieza"
+    mes_rc = int(get_dato(clave_mes_rc, 3))
+    anio_rc = int(get_dato(clave_anio_rc, int(anio)))
+    clave_rc_anual = f"sobre_anual_RC_Limpieza_{mes_rc}_{anio_rc}"
+    importe_rc = float(get_dato(clave_rc_anual, 82.72))
+    rc_prev = importe_rc if (mes_rc in meses_t_prev and int(anio) == anio_rc) else 0.0
+    gastos_prev = cuota_prev + adeslas_prev + rc_prev
+    beneficio_prev = ingresos_prev - gastos_prev
+    mod130_prev = max(0.0, beneficio_prev * 0.20)
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Ingresos estimados", f"{ingresos_prev:.2f} €")
+    col2.metric("Gastos estimados", f"{gastos_prev:.2f} €")
+    col3.metric("Beneficio estimado", f"{beneficio_prev:.2f} €")
+    st.metric("🔮 Mod. 130 estimado", f"{mod130_prev:.2f} €")
+    rc_txt = f"+ RC Limpieza {rc_prev:.2f}€" if rc_prev > 0 else "(RC Limpieza no vence este trimestre)"
+    st.caption(f"Gastos incluidos: Cuota autónomo {cuota_prev:.2f}€ + Adeslas {adeslas_prev:.2f}€ {rc_txt} · (valores reales de la app)")
+
 st.markdown("---")
 st.markdown("**Ahorro inversión**")
 st.caption("Dinero para invertir en acciones pensando en la jubilación.")
@@ -413,14 +476,21 @@ st.write(f"**Total Trade Republic: {total_sobres:.2f} EUR**")
 st.divider()
 
 # --- SECCION 3: GASTOS ---
-col_m, col_a = st.columns(2)
+col_m, col_a, col_r = st.columns([2, 1, 1])
 with col_m:
     mes_nombre = st.selectbox("Mes", MESES, index=MESES.index(mes_nombre), key="mes__gastos", label_visibility="collapsed")
 with col_a:
-    st.write(f"**{int(anio)}**")
+    anio = st.number_input("Año", min_value=2024, max_value=2035, value=int(anio), step=1, key="anio__gastos", label_visibility="collapsed")
+with col_r:
+    if st.button("🔄", key="refresh_gastos", help="Refrescar"):
+        st.session_state.pop("_todos_datos", None)
+        st.rerun()
 mi = MESES.index(mes_nombre) + 1
 
 st.subheader("Gastos del mes")
+if st.button("🔄 Refrescar", key="refresh_gastos"):
+    cargar_todos_datos.clear()
+    st.rerun()
 
 tab_bbva, tab_efectivo = st.tabs(["BBVA", "Gastos Efectivo"])
 
