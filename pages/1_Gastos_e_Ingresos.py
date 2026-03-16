@@ -124,34 +124,15 @@ def calcular_dias_mes(cliente_data, anio, mes_idx):
     return [d for s in cal.monthdays2calendar(anio, mes_idx)
             for d, ds in s if d != 0 and ds in cliente_data["w"]]
 
-# --- SELECTOR MES Y AÑO (compartido) ---
-if "mes_global" not in st.session_state:
-    st.session_state["mes_global"] = MESES[datetime.now().month - 1]
-if "anio_global" not in st.session_state:
-    st.session_state["anio_global"] = datetime.now().year
-
-def sync_mes(key):
-    st.session_state["mes_global"] = st.session_state[key]
-
-def sync_anio(key):
-    st.session_state["anio_global"] = int(st.session_state[key])
-
+# --- SELECTOR MES Y AÑO ---
 col_mes, col_anio = st.columns(2)
 with col_mes:
-    mes_nombre = st.selectbox("Mes", MESES,
-        index=MESES.index(st.session_state["mes_global"]),
-        key="sel_mes_1",
-        on_change=sync_mes, args=("sel_mes_1",))
+    mes_nombre = st.selectbox("Mes", MESES, index=datetime.now().month - 1)
 with col_anio:
     anio = st.number_input("Año", min_value=2024, max_value=2035,
-        value=st.session_state["anio_global"], step=1,
-        key="sel_anio_1",
-        on_change=sync_anio, args=("sel_anio_1",))
+                           value=datetime.now().year, step=1)
 
-st.session_state["mes_global"] = st.session_state["sel_mes_1"]
-st.session_state["anio_global"] = int(st.session_state["sel_anio_1"])
-mi = MESES.index(st.session_state["mes_global"]) + 1
-anio = st.session_state["anio_global"]
+mi = MESES.index(mes_nombre) + 1
 
 st.divider()
 
@@ -238,28 +219,9 @@ st.metric("Total ingresos", f"{total_ingresos:.2f} EUR")
 st.divider()
 
 # --- SECCION 2: TRADE REPUBLIC ---
-col_m, col_a, col_r = st.columns([2, 1, 1])
-with col_m:
-    st.selectbox("Mes", MESES,
-        index=MESES.index(st.session_state["mes_global"]),
-        key="sel_mes_2",
-        on_change=sync_mes, args=("sel_mes_2",),
-        label_visibility="collapsed")
-with col_a:
-    st.number_input("Año", min_value=2024, max_value=2035,
-        value=st.session_state["anio_global"], step=1,
-        key="sel_anio_2",
-        on_change=sync_anio, args=("sel_anio_2",),
-        label_visibility="collapsed")
-with col_r:
-    if st.button("🔄", key="refresh_tr_1", help="Refrescar"):
-        for k in list(st.session_state.keys()):
-            del st.session_state[k]
-        st.rerun()
-st.session_state["mes_global"] = st.session_state["sel_mes_2"]
-st.session_state["anio_global"] = int(st.session_state["sel_anio_2"])
-mi = MESES.index(st.session_state["mes_global"]) + 1
-anio = st.session_state["anio_global"]
+if st.button("🔄 Refrescar", key="refresh_tr_1"):
+    cargar_todos_datos.clear()
+    st.rerun()
 
 st.subheader("Trade Republic")
 st.caption("Aparta este dinero nada mas cobrar. No lo toques.")
@@ -488,28 +450,9 @@ st.write(f"**Total Trade Republic: {total_sobres:.2f} EUR**")
 st.divider()
 
 # --- SECCION 3: GASTOS ---
-col_m, col_a, col_r = st.columns([2, 1, 1])
-with col_m:
-    st.selectbox("Mes", MESES,
-        index=MESES.index(st.session_state["mes_global"]),
-        key="sel_mes_3",
-        on_change=sync_mes, args=("sel_mes_3",),
-        label_visibility="collapsed")
-with col_a:
-    st.number_input("Año", min_value=2024, max_value=2035,
-        value=st.session_state["anio_global"], step=1,
-        key="sel_anio_3",
-        on_change=sync_anio, args=("sel_anio_3",),
-        label_visibility="collapsed")
-with col_r:
-    if st.button("🔄", key="refresh_gastos", help="Refrescar"):
-        for k in list(st.session_state.keys()):
-            del st.session_state[k]
-        st.rerun()
-st.session_state["mes_global"] = st.session_state["sel_mes_3"]
-st.session_state["anio_global"] = int(st.session_state["sel_anio_3"])
-mi = MESES.index(st.session_state["mes_global"]) + 1
-anio = st.session_state["anio_global"]
+if st.button("🔄 Refrescar", key="refresh_gastos"):
+    cargar_todos_datos.clear()
+    st.rerun()
 
 st.subheader("Gastos del mes")
 
