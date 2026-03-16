@@ -9,7 +9,7 @@ st.set_page_config(page_title="Modelo 130 - Cleo Pro", layout="centered")
 def check_password():
     if st.session_state.get("autenticada"):
         return True
-    st.title("Cleo Pro")
+    st.title("Cleo Servicio de Limpieza")
     pwd = st.text_input("Contraseña", type="password")
     if st.button("Entrar"):
         if pwd == st.secrets["password"]:
@@ -135,20 +135,30 @@ st.caption(f"Acumulado desde {'el alta' if int(anio) == ALTA_ANIO else 'enero'} 
 total_ingresos = 0.0
 
 def dias_calendario(weekdays, mi, anio):
-    """Cuenta días del mes que caen en los días de la semana indicados."""
     c = cal_module.Calendar()
     return len([d for d, ds in c.itermonthdays2(int(anio), mi) if d != 0 and ds in weekdays])
 
-CLIS_DIAS = {"Lola": [2], "Yordhana": [3]}  # miércoles, jueves
+CLIS_DIAS = {"Lola": [2], "Yordhana": [3]}
+
+hoy = datetime.now()
 
 for cn, c in CLIS.items():
     ingreso_cliente = 0.0
     for mi in meses_acumulados:
-        num = get_dato_local(datos, f"dias_{cn}_{mi}_{anio}", None)
-        if num is None:
-            # Mes sin dato guardado = aún no ha pasado, no contar
-            continue
-        ingreso_mes = int(num) * c["h"] * c["t"]
+        # Si el mes ya ha pasado o es el actual, usar dato de Supabase
+        # Si es futuro, calcular del calendario
+        es_pasado = (int(anio) < hoy.year) or (int(anio) == hoy.year and mi <= hoy.month)
+        if es_pasado:
+            num = get_dato_local(datos, f"dias_{cn}_{mi}_{anio}", None)
+            if num is None:
+                # No hay dato guardado para este mes pasado → calcular del calendario
+                num_dias = dias_calendario(CLIS_DIAS[cn], mi, anio)
+            else:
+                num_dias = int(num)
+        else:
+            # Mes futuro → calcular del calendario
+            num_dias = dias_calendario(CLIS_DIAS[cn], mi, anio)
+        ingreso_mes = num_dias * c["h"] * c["t"]
         lineas = get_dato_local(datos, f"lineas_extra_{cn}_{mi}_{anio}", [])
         for _, precio in lineas:
             ingreso_mes += precio
