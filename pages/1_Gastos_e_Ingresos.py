@@ -226,7 +226,8 @@ with col_a:
     anio = st.number_input("Año", min_value=2024, max_value=2035, value=int(anio), step=1, key="anio__tr", label_visibility="collapsed")
 with col_r:
     if st.button("🔄", key="refresh_tr_1", help="Refrescar"):
-        st.session_state.pop("_todos_datos", None)
+        for k in list(st.session_state.keys()):
+            del st.session_state[k]
         st.rerun()
 mi = MESES.index(mes_nombre) + 1
 
@@ -391,7 +392,8 @@ meses_pago_130 = [1, 4, 7, 10]
 # Aviso el mes anterior al pago
 meses_aviso_130 = [12, 3, 6, 9]
 for i, (nombre, importe) in enumerate(SOBRES_MENSUALES.items()):
-    val_guardado_130, clave_130 = get_valor_historico(f"mod130_{nombre.replace(' ','_')}", mi, anio, importe)
+    clave_130 = f"mod130_{nombre.replace(' ','_')}_{mi}_{anio}"
+    val_guardado_130 = float(get_dato(clave_130, importe))
     val = st.number_input(nombre, min_value=0.0, max_value=1000.0,
                           value=val_guardado_130, step=0.5, key=f"smen_{i}_{mi}_{anio}")
     if val != val_guardado_130:
@@ -481,7 +483,8 @@ with col_a:
     anio = st.number_input("Año", min_value=2024, max_value=2035, value=int(anio), step=1, key="anio__gastos", label_visibility="collapsed")
 with col_r:
     if st.button("🔄", key="refresh_gastos", help="Refrescar"):
-        st.session_state.pop("_todos_datos", None)
+        for k in list(st.session_state.keys()):
+            del st.session_state[k]
         st.rerun()
 mi = MESES.index(mes_nombre) + 1
 
