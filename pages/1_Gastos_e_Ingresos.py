@@ -225,16 +225,14 @@ with col_m:
 with col_a:
     anio = st.number_input("Año", min_value=2024, max_value=2035, value=int(anio), step=1, key="anio__tr", label_visibility="collapsed")
 with col_r:
-    if st.button("🔄", key="refresh_tr", help="Refrescar"):
+    if st.button("🔄", key="refresh_tr_1", help="Refrescar"):
         st.session_state.pop("_todos_datos", None)
         st.rerun()
 mi = MESES.index(mes_nombre) + 1
 
 st.subheader("Trade Republic")
 st.caption("Aparta este dinero nada mas cobrar. No lo toques.")
-if st.button("🔄 Refrescar", key="refresh_tr"):
-    cargar_todos_datos.clear()
-    st.rerun()
+
 
 SOBRES_ANUALES = {
     "Seguro Coche":     (25.0,  300.0),
@@ -488,9 +486,7 @@ with col_r:
 mi = MESES.index(mes_nombre) + 1
 
 st.subheader("Gastos del mes")
-if st.button("🔄 Refrescar", key="refresh_gastos"):
-    cargar_todos_datos.clear()
-    st.rerun()
+
 
 tab_bbva, tab_efectivo = st.tabs(["BBVA", "Gastos Efectivo"])
 
