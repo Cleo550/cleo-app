@@ -132,11 +132,9 @@ if "anio_global" not in st.session_state:
 
 def sync_mes(key):
     st.session_state["mes_global"] = st.session_state[key]
-    st.rerun()
 
 def sync_anio(key):
-    st.session_state["anio_global"] = st.session_state[key]
-    st.rerun()
+    st.session_state["anio_global"] = int(st.session_state[key])
 
 col_mes, col_anio = st.columns(2)
 with col_mes:
@@ -150,6 +148,8 @@ with col_anio:
         key="sel_anio_1",
         on_change=sync_anio, args=("sel_anio_1",))
 
+st.session_state["mes_global"] = st.session_state["sel_mes_1"]
+st.session_state["anio_global"] = int(st.session_state["sel_anio_1"])
 mi = MESES.index(st.session_state["mes_global"]) + 1
 anio = st.session_state["anio_global"]
 
@@ -256,6 +256,8 @@ with col_r:
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         st.rerun()
+st.session_state["mes_global"] = st.session_state["sel_mes_2"]
+st.session_state["anio_global"] = int(st.session_state["sel_anio_2"])
 mi = MESES.index(st.session_state["mes_global"]) + 1
 anio = st.session_state["anio_global"]
 
@@ -504,6 +506,8 @@ with col_r:
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         st.rerun()
+st.session_state["mes_global"] = st.session_state["sel_mes_3"]
+st.session_state["anio_global"] = int(st.session_state["sel_anio_3"])
 mi = MESES.index(st.session_state["mes_global"]) + 1
 anio = st.session_state["anio_global"]
 
