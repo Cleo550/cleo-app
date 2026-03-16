@@ -411,7 +411,7 @@ for cn, c in CLIS_130.items():
 # Facturas gastos del trimestre desde Supabase
 try:
     r = supabase.table("facturas_gastos").select("importe").eq(
-        "trimestre", f"T{trimestre_actual}_{anio}").execute()
+        "trimestre", f"T{trimestre_actual}_{int(anio)}").execute()
     facturas_gastos_trim = sum(float(f["importe"]) for f in r.data) if r.data else 0.0
 except:
     facturas_gastos_trim = 0.0
@@ -422,8 +422,8 @@ beneficio_real = max(0.0, ingresos_real - gastos_real)
 mod130_real = round(beneficio_real * 0.20, 2)
 mod130_mensual = round(mod130_real / 3, 2)
 
-st.info(f"**Real Q{trimestre_actual}** · Ingresos: {ingresos_real:.2f}€ · Gastos deducibles: {gastos_real:.2f}€ · Beneficio: {beneficio_real:.2f}€")
-st.caption(f"Gastos: Autónomo {cuota_real:.2f}€ + Facturas gastos {facturas_gastos_trim:.2f}€ ({n_meses} mes/es)")
+st.markdown(f"**Real Q{trimestre_actual} {int(anio)}** · Ingresos: {ingresos_real:.2f}€ · Gastos: {gastos_real:.2f}€ · Beneficio: {beneficio_real:.2f}€")
+st.caption(f"Autónomo {cuota_real:.2f}€ + Facturas gastos {facturas_gastos_trim:.2f}€ ({n_meses} mes/es)")
 st.metric("💰 Mod. 130 a pagar", f"{mod130_real:.2f} €")
 st.metric("📅 Aparta este mes (1/3)", f"{mod130_mensual:.2f} €")
 
@@ -434,7 +434,7 @@ if mi in meses_aviso_130:
 sobres_vals["Mod. 130"] = mod130_mensual
 total_sobres += mod130_mensual
 total_mensuales = mod130_mensual
-st.info(f"Total Mod. 130 mensualizado: {mod130_mensual:.2f} EUR/mes")
+st.caption(f"Total Mod. 130 mensualizado: {mod130_mensual:.2f} EUR/mes")
 
 
 st.markdown("---")
