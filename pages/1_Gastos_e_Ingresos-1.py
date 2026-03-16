@@ -219,6 +219,13 @@ st.metric("Total ingresos", f"{total_ingresos:.2f} EUR")
 st.divider()
 
 # --- SECCION 2: TRADE REPUBLIC ---
+col_m, col_a = st.columns(2)
+with col_m:
+    mes_nombre = st.selectbox("Mes", MESES, index=MESES.index(mes_nombre), key="mes__tr", label_visibility="collapsed")
+with col_a:
+    st.write(f"**{int(anio)}**")
+mi = MESES.index(mes_nombre) + 1
+
 st.subheader("Trade Republic")
 st.caption("Aparta este dinero nada mas cobrar. No lo toques.")
 
@@ -406,6 +413,13 @@ st.write(f"**Total Trade Republic: {total_sobres:.2f} EUR**")
 st.divider()
 
 # --- SECCION 3: GASTOS ---
+col_m, col_a = st.columns(2)
+with col_m:
+    mes_nombre = st.selectbox("Mes", MESES, index=MESES.index(mes_nombre), key="mes__gastos", label_visibility="collapsed")
+with col_a:
+    st.write(f"**{int(anio)}**")
+mi = MESES.index(mes_nombre) + 1
+
 st.subheader("Gastos del mes")
 
 tab_bbva, tab_efectivo = st.tabs(["BBVA", "Gastos Efectivo"])
