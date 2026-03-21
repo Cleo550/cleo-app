@@ -87,12 +87,18 @@ st.markdown("---")
 st.markdown("<h2 style='color:#2ABFBF'>1. Actividad económica</h2>", unsafe_allow_html=True)
 st.caption("Ingresos como autónoma menos gastos deducibles.")
 
+# Mes de inicio según año (alta en marzo 2026)
+MES_ALTA, ANIO_ALTA = 3, 2026
+mes_inicio = MES_ALTA if int(anio) == ANIO_ALTA else 1
+
 # Ingresos anuales automáticos
 ingresos_anuales = 0.0
 with st.expander("📊 Ver desglose de ingresos por cliente", expanded=False):
+    if int(anio) == ANIO_ALTA:
+        st.caption(f"Solo desde marzo {ANIO_ALTA} (fecha de alta)")
     for cn, c in CLIS.items():
         total_cliente = 0.0
-        for m in range(1, 13):
+        for m in range(mes_inicio, 13):
             num = get_dato(f"dias_{cn}_{m}_{anio}", None)
             if num is None:
                 num_dias = len(calcular_dias_mes(c, int(anio), m))
@@ -107,10 +113,10 @@ st.metric("Total ingresos clientes", f"{ingresos_anuales:.2f} €")
 # Gastos deducibles anuales automáticos
 st.markdown("<h3 style='color:#FF69B4'>Gastos deducibles</h3>", unsafe_allow_html=True)
 
-# Cuota autónomo anual
-cuota_anual = sum(float(get_dato(f"bbva_Cuota_Autonomo_{m}_{anio}", 88.72)) for m in range(1, 13))
-# Adeslas anual
-adeslas_anual = sum(float(get_dato(f"bbva_Adeslas_{m}_{anio}", 30.27)) for m in range(1, 13))
+# Cuota autónomo anual (desde mes de alta)
+cuota_anual = sum(float(get_dato(f"bbva_Cuota_Autonomo_{m}_{anio}", 88.72)) for m in range(mes_inicio, 13))
+# Adeslas anual (desde mes de alta)
+adeslas_anual = sum(float(get_dato(f"bbva_Adeslas_{m}_{anio}", 30.27)) for m in range(mes_inicio, 13))
 # Facturas gastos anuales desde Supabase
 try:
     r = supabase.table("facturas_gastos").select("importe").execute()
@@ -425,11 +431,14 @@ Usa los datos de esta página para rellenar las casillas que faltan.
 - Si hay que pagar, puedes domiciliar o pagar con tarjeta
 - Guarda el **justificante de presentación** en la página de Documentos
 
-<h3 style='color:#FF69B4'>Documentos que necesitas tener a mano</h3>
+<h3 style='color:#FF69B4'>Documentos que deberías tener subidos en la app</h3>
+
+Si los has subido a la app, no necesitas buscarlos — están todos en la página de Documentos. Asegúrate de tener subidos antes de presentar:
 
 - Facturas emitidas a Lola y Yordhana
-- Facturas de gastos deducibles
-- Certificado fiscal de Trade Republic
+- Facturas de gastos deducibles (autónomo, Adeslas, RC...)
+- Certificado fiscal anual de Trade Republic
 - Justificantes de los 4 pagos del Mod. 130
-- Cualquier certificado de ayuda o subvención recibida
+- Certificados de ayudas o subvenciones recibidas
+- Justificante de presentación (lo guardas después de presentar)
 """, unsafe_allow_html=True)
