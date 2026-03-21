@@ -145,7 +145,7 @@ col_mes, col_anio = st.columns(2)
 with col_mes:
     mes_nombre = st.selectbox("Mes", MESES, index=datetime.now().month - 1)
 with col_anio:
-    anio = st.number_input("Año", min_value=2024, max_value=2035,
+    anio = st.number_input("Año", min_value=2024, max_value=2060,
                            value=datetime.now().year, step=1)
 
 mi = MESES.index(mes_nombre) + 1
