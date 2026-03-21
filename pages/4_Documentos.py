@@ -171,9 +171,24 @@ with tab_gastos:
 
     secciones = get_dato("doc_gastos_secciones", [])
 
-    # Botón añadir sección
-    if st.button("➕ Añadir sección", key="btn_nueva_seccion"):
-        st.session_state["show_nueva_seccion"] = True
+    if "doc_seccion_sel" not in st.session_state and secciones:
+        st.session_state["doc_seccion_sel"] = secciones[0]
+
+    # Botones de secciones
+    if secciones:
+        cols = st.columns(len(secciones) + 1)
+        for i, sec in enumerate(secciones):
+            with cols[i]:
+                tipo = "primary" if st.session_state.get("doc_seccion_sel") == sec else "secondary"
+                if st.button(sec, key=f"btn_sec_{sec}", use_container_width=True, type=tipo):
+                    st.session_state["doc_seccion_sel"] = sec
+                    st.rerun()
+        with cols[-1]:
+            if st.button("➕", key="btn_nueva_seccion", use_container_width=True):
+                st.session_state["show_nueva_seccion"] = True
+    else:
+        if st.button("➕ Añadir sección", key="btn_nueva_seccion"):
+            st.session_state["show_nueva_seccion"] = True
 
     if st.session_state.get("show_nueva_seccion", False):
         nueva_sec = st.text_input("Nombre de la sección", placeholder="Ej: Seguros, Contratos...", key="input_nueva_seccion")
@@ -183,6 +198,7 @@ with tab_gastos:
                 if nueva_sec and nueva_sec not in secciones:
                     secciones.append(nueva_sec)
                     set_dato("doc_gastos_secciones", secciones)
+                    st.session_state["doc_seccion_sel"] = nueva_sec
                     st.session_state["show_nueva_seccion"] = False
                     st.rerun()
         with c2:
@@ -190,9 +206,10 @@ with tab_gastos:
                 st.session_state["show_nueva_seccion"] = False
                 st.rerun()
 
-    if not secciones:
-        st.caption("No hay secciones aún. Pulsa 'Añadir sección' para empezar.")
-
-    for sec in secciones:
-        st.markdown(f"<h3 style='color:#FF69B4'>{sec}</h3>", unsafe_allow_html=True)
-        mostrar_documentos(f"docs_gastos_{sec}", f"gastos/{sec}")
+    st.markdown("---")
+    if secciones and st.session_state.get("doc_seccion_sel"):
+        sec_sel = st.session_state["doc_seccion_sel"]
+        st.markdown(f"<h3 style='color:#FF69B4'>{sec_sel}</h3>", unsafe_allow_html=True)
+        mostrar_documentos(f"docs_gastos_{sec_sel}", f"gastos/{sec_sel}")
+    elif not secciones:
+        st.caption("No hay secciones aún. Pulsa ➕ para empezar.")
