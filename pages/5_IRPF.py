@@ -76,7 +76,7 @@ st.markdown("<h1 style='color:#2ABFBF'>Declaración de la Renta (IRPF)</h1>", un
 st.caption("Ejercicio fiscal anual. Todos los datos se guardan para la presentación.")
 
 # Selector de año
-anio = st.number_input("Año fiscal", min_value=2026, max_value=2040,
+anio = st.number_input("Año fiscal", min_value=2026, max_value=2060,
                         value=datetime.now().year, step=1)
 
 st.markdown("---")
