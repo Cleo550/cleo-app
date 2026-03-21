@@ -35,7 +35,7 @@ TRIMESTRES = {
     "T4 · Octubre - Diciembre":  "T4",
 }
 
-st.title("Facturas Gastos")
+st.markdown("<h1 style='color:#2ABFBF'>Facturas Gastos</h1>", unsafe_allow_html=True)
 
 # Selector trimestre y año
 col1, col2 = st.columns(2)
@@ -51,7 +51,7 @@ clave_trim = f"{trimestre}_{int(anio)}"
 st.markdown("---")
 
 # --- SUBIR FACTURA ---
-st.subheader("Añadir factura")
+st.markdown("<h3 style='color:#FF69B4'>Añadir factura</h3>", unsafe_allow_html=True)
 
 col_a, col_b = st.columns(2)
 with col_a:
@@ -87,7 +87,7 @@ if st.button("💾 Guardar factura", type="primary", use_container_width=True):
 st.markdown("---")
 
 # --- LISTADO DE FACTURAS ---
-st.subheader(f"Facturas guardadas · {trimestre_nombre} · {int(anio)}")
+st.markdown(f"<h3 style='color:#FF69B4'>Facturas guardadas · {trimestre_nombre} · {int(anio)}</h3>", unsafe_allow_html=True)
 
 with st.spinner("Cargando facturas..."):
     try:

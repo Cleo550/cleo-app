@@ -692,17 +692,18 @@ neto_real = total_ingresos - total_gastos - total_sobres
 col_a, col_b, col_c = st.columns(3)
 col_a.metric("Ingresos", f"{total_ingresos:.2f} EUR")
 col_b.metric("Total salidas", f"{total_gastos + total_sobres:.2f} EUR")
-col_c.metric("Dinero libre", f"{neto_real:.2f} EUR")
+color_neto = "green" if neto_real >= 0 else "red"
+col_c.markdown(f"<p style='font-size:14px;color:grey'>Dinero libre</p><p style='font-size:2rem;font-weight:bold;color:{color_neto}'>{neto_real:.2f} EUR</p>", unsafe_allow_html=True)
 
 with st.expander("Ver desglose completo"):
-    st.markdown("**Ingresos por cliente:**")
+    st.markdown("<b style='color:#2ABFBF'>Ingresos por cliente:</b>", unsafe_allow_html=True)
     for cliente, val in ingresos_reales.items():
         st.write(f"- {cliente} ({dias_trabajados[cliente]} dias): {val:.2f} EUR")
     for nombre_i, importe_i in st.session_state[key_ing_extra]:
         st.write(f"- {nombre_i}: {importe_i:.2f} EUR")
     st.write(f"**= Total ingresos: {total_ingresos:.2f} EUR**")
     st.markdown("---")
-    st.markdown("**Trade Republic:**")
+    st.markdown("<b style='color:#2ABFBF'>Trade Republic:</b>", unsafe_allow_html=True)
     st.write(f"- Pagos anuales: {total_anuales:.2f} EUR/mes")
     st.write(f"- Mod. 130 (mensualizado): {total_mensuales:.2f} EUR")
     st.write(f"- Ahorro inversion: {total_ahorro:.2f} EUR")
@@ -710,7 +711,7 @@ with st.expander("Ver desglose completo"):
         st.write(f"- {nombre_t}: {importe_t:.2f} EUR")
     st.write(f"**= Total Trade Republic: {total_sobres:.2f} EUR**")
     st.markdown("---")
-    st.markdown("**BBVA:**")
+    st.markdown("<b style='color:#2ABFBF'>BBVA:</b>", unsafe_allow_html=True)
     # Pagos anuales de Trade Republic que tocan este mes
     for gasto, importe in GASTOS_BBVA.items():
         st.write(f"- {gasto}: {importe:.2f} EUR")
@@ -718,7 +719,7 @@ with st.expander("Ver desglose completo"):
         st.write(f"- {nombre_b}: {importe_b:.2f} EUR")
     st.write(f"**= Total BBVA: {total_fijos:.2f} EUR**")
     st.markdown("---")
-    st.markdown("**Gastos Efectivo:**")
+    st.markdown("<b style='color:#2ABFBF'>Gastos Efectivo:</b>", unsafe_allow_html=True)
     for gasto, importe in GASTOS_EXTRA_DEF.items():
         st.write(f"- {gasto}: {importe:.2f} EUR")
     for nombre_g, importe_g in st.session_state[key_ge_extra]:
@@ -729,4 +730,4 @@ with st.expander("Ver desglose completo"):
     st.write(f"**- Trade Republic:** -{total_sobres:.2f} EUR")
     st.write(f"**- BBVA:** -{total_fijos:.2f} EUR")
     st.write(f"**- Efectivo:** -{total_extras:.2f} EUR")
-    st.write(f"**= Dinero libre: {neto_real:.2f} EUR**")
+    st.markdown(f"<b>= Dinero libre: <span style='color:{'green' if neto_real >= 0 else 'red'};'>{neto_real:.2f} EUR</span></b>", unsafe_allow_html=True)

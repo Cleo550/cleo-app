@@ -128,7 +128,7 @@ st.markdown("---")
 meses_acumulados = meses_trim
 
 # --- INGRESOS ---
-st.subheader("📥 Ingresos con factura")
+st.markdown("<h3 style='color:#2ABFBF'>📥 Ingresos con factura</h3>", unsafe_allow_html=True)
 st.caption("Solo Lola y Yordhana (tienen factura legal). Ania cobra en efectivo y no cuenta.")
 st.caption(f"Meses: {', '.join([MESES[m-1] for m in meses_trim])}")
 
@@ -171,7 +171,7 @@ st.metric("Total ingresos", f"{total_ingresos:.2f} EUR")
 st.markdown("---")
 
 # --- GASTOS DEDUCIBLES ---
-st.subheader("📤 Gastos deducibles")
+st.markdown("<h3 style='color:#2ABFBF'>📤 Gastos deducibles</h3>", unsafe_allow_html=True)
 
 total_gastos_ded = 0.0
 
@@ -235,7 +235,7 @@ st.metric("Total gastos deducibles", f"{total_gastos_ded:.2f} EUR")
 st.markdown("---")
 
 # --- CÁLCULO ---
-st.subheader("🧮 Cálculo Modelo 130")
+st.markdown("<h3 style='color:#2ABFBF'>🧮 Cálculo Modelo 130</h3>", unsafe_allow_html=True)
 
 beneficio = total_ingresos - total_gastos_ded
 retencion = max(0.0, beneficio * 0.20)
@@ -261,14 +261,15 @@ col4.metric("20% beneficio", f"{retencion:.2f} €")
 col5.metric("Pagos anteriores año", f"{pagos_anteriores:.2f} €")
 col6.metric("🔴 A INGRESAR", f"{a_ingresar:.2f} €")
 
-# Actualizar Mod.130 en Gastos e Ingresos
+# Guardar importe calculado siempre (para que BBVA lo muestre)
+set_dato(f"mod130_calculado_t{t_num}_{int(anio)}", a_ingresar)
 for mi in meses_trim:
     set_dato(f"mod130_Mod._130_(trimestral)_{mi}_{anio}", a_ingresar)
 st.success(f"✅ Gastos e Ingresos actualizado: {a_ingresar:.2f} EUR para T{t_num}")
 
 # Marcar como pagado
 st.markdown("---")
-st.subheader("✅ Marcar como pagado")
+st.markdown("<h3 style='color:#FF69B4'>✅ Marcar como pagado</h3>", unsafe_allow_html=True)
 pagado_key = f"mod130_pagado_t{t_num}_{int(anio)}"
 ya_pagado = get_dato_local(datos, pagado_key, False)
 if ya_pagado:
@@ -286,7 +287,7 @@ else:
 st.markdown("---")
 
 # --- RESUMEN PARA COPIAR ---
-st.subheader("📋 Resumen para presentar en Hacienda")
+st.markdown("<h3 style='color:#FF69B4'>📋 Resumen para presentar en Hacienda</h3>", unsafe_allow_html=True)
 st.caption("Copia estos datos en la web de la AEAT")
 
 resumen = f"""MODELO 130 - {trimestre} {int(anio)}
@@ -303,7 +304,7 @@ st.code(resumen, language=None)
 st.markdown("---")
 
 # --- GUÍA PASO A PASO ---
-st.subheader("📖 Cómo presentar el Modelo 130")
+st.markdown("<h3 style='color:#2ABFBF'>📖 Cómo presentar el Modelo 130</h3>", unsafe_allow_html=True)
 with st.expander("Ver guía completa", expanded=False):
     st.markdown(f"""
 **PASO 1 — Entra en la web de Hacienda**
