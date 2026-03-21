@@ -88,7 +88,7 @@ TRIMESTRES = {
     "T4 - Octubre a Diciembre": [10, 11, 12],
 }
 
-st.title("Modelo 130")
+st.markdown("<h1 style='color:#2ABFBF'>Modelo 130</h1>", unsafe_allow_html=True)
 st.caption("Pago fraccionado IRPF - Estimación Directa Simplificada")
 
 col1, col2 = st.columns(2)
@@ -128,7 +128,7 @@ st.markdown("---")
 meses_acumulados = meses_trim
 
 # --- INGRESOS ---
-st.markdown("<h3 style='color:#2ABFBF'>📥 Ingresos con factura</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='color:#FF69B4'>📥 Ingresos con factura</h3>", unsafe_allow_html=True)
 st.caption("Solo Lola y Yordhana (tienen factura legal). Ania cobra en efectivo y no cuenta.")
 st.caption(f"Meses: {', '.join([MESES[m-1] for m in meses_trim])}")
 
@@ -171,7 +171,7 @@ st.metric("Total ingresos", f"{total_ingresos:.2f} EUR")
 st.markdown("---")
 
 # --- GASTOS DEDUCIBLES ---
-st.markdown("<h3 style='color:#2ABFBF'>📤 Gastos deducibles</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='color:#FF69B4'>📤 Gastos deducibles</h3>", unsafe_allow_html=True)
 
 total_gastos_ded = 0.0
 
@@ -235,7 +235,7 @@ st.metric("Total gastos deducibles", f"{total_gastos_ded:.2f} EUR")
 st.markdown("---")
 
 # --- CÁLCULO ---
-st.markdown("<h3 style='color:#2ABFBF'>🧮 Cálculo Modelo 130</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='color:#FF69B4'>🧮 Cálculo Modelo 130</h3>", unsafe_allow_html=True)
 
 beneficio = total_ingresos - total_gastos_ded
 retencion = max(0.0, beneficio * 0.20)
@@ -304,7 +304,7 @@ st.code(resumen, language=None)
 st.markdown("---")
 
 # --- GUÍA PASO A PASO ---
-st.markdown("<h3 style='color:#2ABFBF'>📖 Cómo presentar el Modelo 130</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='color:#FF69B4'>📖 Cómo presentar el Modelo 130</h3>", unsafe_allow_html=True)
 with st.expander("Ver guía completa", expanded=False):
     st.markdown(f"""
 **PASO 1 — Entra en la web de Hacienda**

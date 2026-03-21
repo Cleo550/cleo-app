@@ -161,7 +161,7 @@ def generar_imagen(cn, c, mi, anio, dias, num_factura, lineas_extra=None):
     return buf.getvalue()
 
 # --- UI ---
-st.title("Facturas Clientes")
+st.markdown("<h1 style='color:#2ABFBF'>Facturas Clientes</h1>", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 with col1:
@@ -246,7 +246,7 @@ with col_mod:
 key_edicion = f"modo_edicion_{cn}_{mi}_{anio}"
 if st.session_state.get(key_edicion, False):
     st.markdown("---")
-    st.subheader("Modificar factura")
+    st.markdown("<h3 style='color:#FF69B4'>Modificar factura</h3>", unsafe_allow_html=True)
 
     st.markdown("**Días trabajados:**")
     nuevos_dias = []

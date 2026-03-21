@@ -146,7 +146,7 @@ mi = MESES.index(mes_nombre) + 1
 st.divider()
 
 # --- SECCION 1: INGRESOS ---
-st.subheader("Ingresos del mes")
+st.markdown("<h2 style='color:#2ABFBF'>Ingresos del mes</h2>", unsafe_allow_html=True)
 
 ingresos_reales = {}
 dias_trabajados = {}
@@ -232,7 +232,7 @@ if st.button("🔄 Refrescar", key="refresh_tr_1"):
     cargar_todos_datos.clear()
     st.rerun()
 
-st.subheader("Trade Republic")
+st.markdown("<h2 style='color:#2ABFBF'>Trade Republic</h2>", unsafe_allow_html=True)
 st.caption("Aparta este dinero nada mas cobrar. No lo toques.")
 
 
@@ -464,7 +464,7 @@ if st.button("🔄 Refrescar", key="refresh_gastos"):
     cargar_todos_datos.clear()
     st.rerun()
 
-st.subheader("Gastos del mes")
+st.markdown("<h2 style='color:#2ABFBF'>Gastos del mes</h2>", unsafe_allow_html=True)
 
 
 tab_bbva, tab_efectivo = st.tabs(["BBVA", "Gastos Efectivo"])
@@ -685,7 +685,7 @@ total_gastos = total_fijos + total_extras
 st.divider()
 
 # --- SECCION 4: RESUMEN FINAL ---
-st.subheader("Resumen del mes")
+st.markdown("<h2 style='color:#2ABFBF'>Resumen del mes</h2>", unsafe_allow_html=True)
 
 neto_real = total_ingresos - total_gastos - total_sobres
 
@@ -696,14 +696,14 @@ color_neto = "green" if neto_real >= 0 else "red"
 col_c.markdown(f"<p style='font-size:14px;color:grey'>Dinero libre</p><p style='font-size:2rem;font-weight:bold;color:{color_neto}'>{neto_real:.2f} EUR</p>", unsafe_allow_html=True)
 
 with st.expander("Ver desglose completo"):
-    st.markdown("<b style='color:#2ABFBF'>Ingresos por cliente:</b>", unsafe_allow_html=True)
+    st.markdown("<b style='color:#FF69B4'>Ingresos por cliente:</b>", unsafe_allow_html=True)
     for cliente, val in ingresos_reales.items():
         st.write(f"- {cliente} ({dias_trabajados[cliente]} dias): {val:.2f} EUR")
     for nombre_i, importe_i in st.session_state[key_ing_extra]:
         st.write(f"- {nombre_i}: {importe_i:.2f} EUR")
     st.write(f"**= Total ingresos: {total_ingresos:.2f} EUR**")
     st.markdown("---")
-    st.markdown("<b style='color:#2ABFBF'>Trade Republic:</b>", unsafe_allow_html=True)
+    st.markdown("<b style='color:#FF69B4'>Trade Republic:</b>", unsafe_allow_html=True)
     st.write(f"- Pagos anuales: {total_anuales:.2f} EUR/mes")
     st.write(f"- Mod. 130 (mensualizado): {total_mensuales:.2f} EUR")
     st.write(f"- Ahorro inversion: {total_ahorro:.2f} EUR")
@@ -711,7 +711,7 @@ with st.expander("Ver desglose completo"):
         st.write(f"- {nombre_t}: {importe_t:.2f} EUR")
     st.write(f"**= Total Trade Republic: {total_sobres:.2f} EUR**")
     st.markdown("---")
-    st.markdown("<b style='color:#2ABFBF'>BBVA:</b>", unsafe_allow_html=True)
+    st.markdown("<b style='color:#FF69B4'>BBVA:</b>", unsafe_allow_html=True)
     # Pagos anuales de Trade Republic que tocan este mes
     for gasto, importe in GASTOS_BBVA.items():
         st.write(f"- {gasto}: {importe:.2f} EUR")
@@ -719,7 +719,7 @@ with st.expander("Ver desglose completo"):
         st.write(f"- {nombre_b}: {importe_b:.2f} EUR")
     st.write(f"**= Total BBVA: {total_fijos:.2f} EUR**")
     st.markdown("---")
-    st.markdown("<b style='color:#2ABFBF'>Gastos Efectivo:</b>", unsafe_allow_html=True)
+    st.markdown("<b style='color:#FF69B4'>Gastos Efectivo:</b>", unsafe_allow_html=True)
     for gasto, importe in GASTOS_EXTRA_DEF.items():
         st.write(f"- {gasto}: {importe:.2f} EUR")
     for nombre_g, importe_g in st.session_state[key_ge_extra]:
