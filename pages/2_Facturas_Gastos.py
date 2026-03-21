@@ -42,7 +42,7 @@ col1, col2 = st.columns(2)
 with col1:
     trimestre_nombre = st.selectbox("Trimestre", list(TRIMESTRES.keys()))
 with col2:
-    anio = st.number_input("Año", min_value=2024, max_value=2035,
+    anio = st.number_input("Año", min_value=2024, max_value=2060,
                             value=datetime.now().year, step=1)
 
 trimestre = TRIMESTRES[trimestre_nombre]
