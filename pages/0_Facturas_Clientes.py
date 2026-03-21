@@ -208,7 +208,8 @@ dias_actuales = st.session_state[key_dias_mod]
 
 key_nf = f"nf_{cn}_{mi}_{anio}"
 if key_nf not in st.session_state:
-    st.session_state[key_nf] = ""
+    # Cargar desde Supabase
+    st.session_state[key_nf] = get_dato(key_nf, "")
 num_factura = st.session_state[key_nf]
 
 key_lineas = f"lineas_extra_{cn}_{mi}_{anio}"
@@ -230,6 +231,7 @@ with col_nf:
     st.caption("Número factura")
     if nuevo_nf != num_factura:
         st.session_state[key_nf] = nuevo_nf
+        supabase.table("datos_app").upsert({"clave": key_nf, "valor": json.dumps(nuevo_nf)}).execute()
         st.rerun()
 
 with col_env:
