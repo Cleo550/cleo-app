@@ -76,7 +76,7 @@ def mostrar_documentos(clave_lista, carpeta):
 
     # Subir nuevo documento
     with st.expander("➕ Añadir documento", expanded=False):
-        archivo = st.file_uploader("Archivo (PDF, imagen, Word, Excel)", key=f"up_{clave_lista}")
+        archivo = st.file_uploader("Subir archivo o foto", type=["pdf","png","jpg","jpeg","docx","xlsx"], key=f"up_{clave_lista}")
         nombre = st.text_input("Nombre", placeholder="Ej: Contrato 2026", key=f"nom_{clave_lista}")
         desc = st.text_input("Descripción (opcional)", placeholder="Ej: Firmado en marzo", key=f"desc_{clave_lista}")
         if st.button("💾 Guardar documento", key=f"btn_{clave_lista}"):
