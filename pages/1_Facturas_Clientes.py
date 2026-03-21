@@ -59,9 +59,7 @@ def generar_imagen(cn, c, mi, anio, dias, num_factura, lineas_extra=None):
     if lineas_extra is None:
         lineas_extra = []
 
-    # Canvas grande para que las letras se vean bien en móvil
     W, H = 800, 1400
-    S = 2  # factor de escala respecto al diseño original
 
     img = Image.new('RGB', (W, H), "white")
     draw = ImageDraw.Draw(img)
@@ -167,7 +165,7 @@ col1, col2 = st.columns(2)
 with col1:
     mn = st.selectbox("Mes", MESES, index=datetime.now().month - 1)
 with col2:
-    anio = st.number_input("Año", min_value=2024, max_value=2035, value=datetime.now().year, step=1)
+    anio = st.number_input("Año", min_value=2024, max_value=2060, value=datetime.now().year, step=1)
 
 mi = MESES.index(mn) + 1
 st.markdown("---")
@@ -208,7 +206,6 @@ dias_actuales = st.session_state[key_dias_mod]
 
 key_nf = f"nf_{cn}_{mi}_{anio}"
 if key_nf not in st.session_state:
-    # Cargar desde Supabase
     st.session_state[key_nf] = get_dato(key_nf, "")
 num_factura = st.session_state[key_nf]
 
