@@ -124,13 +124,20 @@ def calcular_dias_mes(cliente_data, anio, mes_idx):
     return [d for s in cal.monthdays2calendar(anio, mes_idx)
             for d, ds in s if d != 0 and ds in cliente_data["w"]]
 
-# Botón subir arriba
-st.markdown('<a href="#top" id="top"></a>', unsafe_allow_html=True)
+# Botones flotantes de navegación
+st.markdown('<a name="top"></a>', unsafe_allow_html=True)
 st.markdown("""
 <style>
-#btn-subir {position:fixed;bottom:70px;right:20px;z-index:9999;}
+#nav-flotante {position:fixed;bottom:70px;right:15px;z-index:9999;display:flex;flex-direction:column;gap:6px;align-items:flex-end;}
+#nav-flotante a button {border:none;border-radius:20px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:bold;width:100%;}
 </style>
-<div id="btn-subir"><a href="#top"><button style="background:#ff4b4b;color:white;border:none;border-radius:50%;width:45px;height:45px;font-size:20px;cursor:pointer;">↑</button></a></div>
+<div id="nav-flotante">
+  <a href="#top"><button style="background:#ff4b4b;color:white;">↑ Inicio</button></a>
+  <a href="#ingresos"><button style="background:#2ABFBF;color:white;">💰 Ingresos</button></a>
+  <a href="#trade"><button style="background:#2ABFBF;color:white;">🏦 Trade R.</button></a>
+  <a href="#gastos"><button style="background:#2ABFBF;color:white;">💸 Gastos</button></a>
+  <a href="#resumen"><button style="background:#FF69B4;color:white;">📊 Resumen</button></a>
+</div>
 """, unsafe_allow_html=True)
 
 # --- SELECTOR MES Y AÑO ---
@@ -146,7 +153,7 @@ mi = MESES.index(mes_nombre) + 1
 st.divider()
 
 # --- SECCION 1: INGRESOS ---
-st.markdown("<h2 style='color:#2ABFBF'>Ingresos del mes</h2>", unsafe_allow_html=True)
+st.markdown("<a name='ingresos'></a><h2 style='color:#2ABFBF'>Ingresos del mes</h2>", unsafe_allow_html=True)
 
 ingresos_reales = {}
 dias_trabajados = {}
@@ -232,7 +239,7 @@ if st.button("🔄 Refrescar", key="refresh_tr_1"):
     cargar_todos_datos.clear()
     st.rerun()
 
-st.markdown("<h2 style='color:#2ABFBF'>Trade Republic</h2>", unsafe_allow_html=True)
+st.markdown("<a name='trade'></a><h2 style='color:#2ABFBF'>Trade Republic</h2>", unsafe_allow_html=True)
 st.caption("Aparta este dinero nada mas cobrar. No lo toques.")
 
 
@@ -464,7 +471,7 @@ if st.button("🔄 Refrescar", key="refresh_gastos"):
     cargar_todos_datos.clear()
     st.rerun()
 
-st.markdown("<h2 style='color:#2ABFBF'>Gastos del mes</h2>", unsafe_allow_html=True)
+st.markdown("<a name='gastos'></a><h2 style='color:#2ABFBF'>Gastos del mes</h2>", unsafe_allow_html=True)
 
 
 tab_bbva, tab_efectivo = st.tabs(["BBVA", "Gastos Efectivo"])
@@ -685,7 +692,7 @@ total_gastos = total_fijos + total_extras
 st.divider()
 
 # --- SECCION 4: RESUMEN FINAL ---
-st.markdown("<h2 style='color:#2ABFBF'>Resumen del mes</h2>", unsafe_allow_html=True)
+st.markdown("<a name='resumen'></a><h2 style='color:#2ABFBF'>Resumen del mes</h2>", unsafe_allow_html=True)
 
 neto_real = total_ingresos - total_gastos - total_sobres
 
