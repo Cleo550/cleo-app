@@ -54,7 +54,11 @@ CUENTAS_CONFIG = {
     },
     "OpenBanc": {
         "emoji": "🏛️",
-        "subcuentas": ["En la cuenta", "Laura & Cleo"]
+        "subcuentas": ["En la cuenta"]
+    },
+    "OpenBanc Laura & Cleo": {
+        "emoji": "🏛️",
+        "subcuentas": ["Openbanc Laura & Cleo", "Ingresos Laura nuestra cuenta"]
     },
 }
 
@@ -375,6 +379,46 @@ elif vista == "📋 Trans.":
     </div>
     """, unsafe_allow_html=True)
 
+    # ── Formulario nueva transacción (al principio) ──
+    with st.expander("➕ Nueva transacción", expanded=True):
+        tipo_nueva = st.radio("", ["💸 Gasto", "💰 Ingreso", "↔️ Transferencia"],
+                               horizontal=True, key="tipo_nueva_tx")
+        es_g_n = tipo_nueva == "💸 Gasto"
+        es_tr_n = tipo_nueva == "↔️ Transferencia"
+        tipo_db = "gasto" if es_g_n else ("transf" if es_tr_n else "ingreso")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            fecha_n = st.date_input("Fecha", value=date.today(), key="fecha_n")
+        with col2:
+            importe_n = st.number_input("Importe €", min_value=0.01, max_value=99999.0,
+                                         value=0.01, step=0.01, key="importe_n",
+                                         label_visibility="collapsed")
+            st.caption("Importe €")
+
+        col3, col4 = st.columns(2)
+        with col3:
+            cuenta_n = st.selectbox("Cuenta", TODAS_CUENTAS, key="cuenta_n")
+        with col4:
+            sc_opts = CUENTAS_CONFIG[cuenta_n]["subcuentas"]
+            subcuenta_n = st.selectbox("Subcuenta", sc_opts, key="sc_n")
+
+        cats_n = CATEGORIAS_GASTO if es_g_n else CATEGORIAS_INGRESO
+        col5, col6 = st.columns(2)
+        with col5:
+            cat_n = st.selectbox("Categoría", cats_n, key="cat_n")
+        with col6:
+            desc_n = st.text_input("Descripción", placeholder="Mercadona, farmacia...",
+                                    key="desc_n", label_visibility="collapsed")
+            st.caption("Descripción")
+
+        if st.button("💾 Guardar", type="primary", use_container_width=True, key="btn_guardar"):
+            if guardar_tx(fecha_n, tipo_db, cuenta_n, subcuenta_n, cat_n, desc_n, importe_n):
+                st.success("✅ Guardado")
+                st.rerun()
+
+    st.markdown("---")
+
     # Agrupar por día
     por_dia = {}
     for t in txs_mes:
@@ -436,46 +480,6 @@ elif vista == "📋 Trans.":
                     if st.button("✕", key=f"del_{t['id']}"):
                         borrar_tx(t["id"])
                         st.rerun()
-
-    # ── Formulario nueva transacción ──
-    st.markdown("<br><hr>", unsafe_allow_html=True)
-    st.markdown("<h3 style='color:#FF69B4'>➕ Nueva transacción</h3>", unsafe_allow_html=True)
-
-    tipo_nueva = st.radio("", ["💸 Gasto", "💰 Ingreso", "↔️ Transferencia"],
-                           horizontal=True, key="tipo_nueva_tx")
-    es_g_n = tipo_nueva == "💸 Gasto"
-    es_tr_n = tipo_nueva == "↔️ Transferencia"
-    tipo_db = "gasto" if es_g_n else ("transf" if es_tr_n else "ingreso")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        fecha_n = st.date_input("Fecha", value=date.today(), key="fecha_n")
-    with col2:
-        importe_n = st.number_input("Importe €", min_value=0.01, max_value=99999.0,
-                                     value=0.01, step=0.01, key="importe_n",
-                                     label_visibility="collapsed")
-        st.caption("Importe €")
-
-    col3, col4 = st.columns(2)
-    with col3:
-        cuenta_n = st.selectbox("Cuenta", TODAS_CUENTAS, key="cuenta_n")
-    with col4:
-        sc_opts = CUENTAS_CONFIG[cuenta_n]["subcuentas"]
-        subcuenta_n = st.selectbox("Subcuenta", sc_opts, key="sc_n")
-
-    cats_n = CATEGORIAS_GASTO if es_g_n else CATEGORIAS_INGRESO
-    col5, col6 = st.columns(2)
-    with col5:
-        cat_n = st.selectbox("Categoría", cats_n, key="cat_n")
-    with col6:
-        desc_n = st.text_input("Descripción", placeholder="Mercadona, farmacia...",
-                                key="desc_n", label_visibility="collapsed")
-        st.caption("Descripción")
-
-    if st.button("💾 Guardar", type="primary", use_container_width=True, key="btn_guardar"):
-        if guardar_tx(fecha_n, tipo_db, cuenta_n, subcuenta_n, cat_n, desc_n, importe_n):
-            st.success("✅ Guardado")
-            st.rerun()
 
 # ═══════════════════════════════════════════
 # 📊 ESTADÍSTICAS
