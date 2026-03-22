@@ -134,8 +134,8 @@ def generar_imagen(cn, c, mi, anio, dias, num_factura, lineas_extra=None):
         tot_f += sub
         draw.text((cols[0]+3, y), "Servicio limpieza", font=font_normal, fill=(80,80,80))
         draw.text((cols[1]+3, y), fecha, font=font_normal, fill="black")
-        draw.text((cols[2]+3, y), f"{c['h']}h", font=font_normal, fill="black")
-        draw.text((cols[3]+3, y), f"{c['t']} EUR", font=font_normal, fill="black")
+        draw.text((cols[2]+3, y), f"{c['h']:.1f}h", font=font_normal, fill="black")
+        draw.text((cols[3]+3, y), f"{c['t']:.2f} EUR", font=font_normal, fill="black")
         draw.text((cols[4]+3, y), f"{sub:.2f} EUR", font=font_normal, fill="black")
         draw.line([(10, y+22), (W-10, y+22)], fill=(210,210,210))
         y += 28
@@ -261,9 +261,11 @@ if es_esporadico:
         st.session_state[key_nf] = get_dato(key_nf, "")
     num_factura = st.session_state[key_nf]
 
-    # Generar imagen con el concepto y el importe del servicio
-    img_bytes = generar_imagen(cn, c_esp, mi, anio, [], num_factura,
-                                [("Servicio de limpieza", srv["importe"])])
+    # Usar las fechas guardadas en el servicio, o generar una si no hay
+    fechas_srv = srv.get("fechas", [f"01/{mi:02d}/{int(anio)}"])
+
+    # Generar imagen con las fechas reales como líneas de la tabla
+    img_bytes = generar_imagen(cn, c_esp, mi, anio, fechas_srv, num_factura, [])
     st.image(img_bytes, use_container_width=True)
 
     col_nf, col_env = st.columns(2)

@@ -332,9 +332,19 @@ with st.expander("⚡ Añadir servicio esporádico", expanded=False):
         st.markdown("**Servicio:**")
         c6, c7 = st.columns(2)
         with c6:
-            esp_horas = st.number_input("Horas", min_value=0.5, max_value=24.0, value=4.0, step=0.5)
+            esp_horas = st.number_input("Horas por día", min_value=0.5, max_value=24.0, value=4.0, step=0.5)
         with c7:
             esp_tarifa = st.number_input("Tarifa €/h", min_value=1.0, max_value=100.0, value=14.0, step=0.5)
+
+        st.markdown("**Días trabajados** (escribe cada fecha y pulsa Añadir):")
+        # Campo de texto para ir añadiendo fechas — dentro del form no podemos usar botones extra
+        # así que usamos un text_area con formato dd/mm/aaaa separadas por comas
+        esp_fechas_raw = st.text_input(
+            "Fechas (dd/mm/aaaa, separadas por comas)",
+            placeholder=f"Ej: 15/03/{anio}, 22/03/{anio}",
+            help="Escribe los días que has trabajado separados por comas"
+        )
+
         esp_tipo = st.radio(
             "Tipo de cobro",
             ["🧾 Factura legal (cuenta para Mod.130 e IRPF)", "💵 Bono en efectivo (no cuenta fiscalmente)"],
@@ -344,7 +354,17 @@ with st.expander("⚡ Añadir servicio esporádico", expanded=False):
         if submitted_esp:
             if esp_nombre:
                 esp_factura = esp_tipo.startswith("🧾")
-                esp_total = esp_horas * esp_tarifa
+                # Parsear fechas
+                esp_fechas = []
+                if esp_fechas_raw:
+                    for f in esp_fechas_raw.split(","):
+                        f = f.strip()
+                        if f:
+                            esp_fechas.append(f)
+                # Si no puso fechas, usar día 1 del mes como placeholder
+                if not esp_fechas:
+                    esp_fechas = [f"01/{mi:02d}/{int(anio)}"]
+                esp_total = len(esp_fechas) * esp_horas * esp_tarifa
                 servicios_esp.append({
                     "nombre": esp_nombre,
                     "nombre_completo": esp_nombre_completo,
@@ -354,7 +374,8 @@ with st.expander("⚡ Añadir servicio esporádico", expanded=False):
                     "horas": esp_horas,
                     "tarifa": esp_tarifa,
                     "importe": esp_total,
-                    "factura": esp_factura
+                    "factura": esp_factura,
+                    "fechas": esp_fechas
                 })
                 set_dato(key_esp_mes, servicios_esp)
                 cargar_todos_datos.clear()
