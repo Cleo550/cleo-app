@@ -387,14 +387,35 @@ elif vista == "📋 Trans.":
         es_tr_n = tipo_nueva == "↔️ Transferencia"
         tipo_db = "gasto" if es_g_n else ("transf" if es_tr_n else "ingreso")
 
-        col1, col2 = st.columns(2)
-        with col1:
-            fecha_n = st.date_input("Fecha", value=date.today(), key="fecha_n")
-        with col2:
+        hoy = date.today()
+        col_dia, col_mes, col_anio, col_imp = st.columns([1, 2, 1.2, 1.5])
+        with col_dia:
+            dia_n = st.selectbox("Día", list(range(1, 32)),
+                                  index=hoy.day - 1, key="dia_n",
+                                  label_visibility="collapsed")
+            st.caption("Día")
+        with col_mes:
+            mes_n = st.selectbox("Mes", MESES_ES,
+                                  index=hoy.month - 1, key="mes_n",
+                                  label_visibility="collapsed")
+            st.caption("Mes")
+        with col_anio:
+            anio_n = st.number_input("Año", min_value=2020, max_value=2060,
+                                      value=hoy.year, step=1, key="anio_n",
+                                      label_visibility="collapsed")
+            st.caption("Año")
+        with col_imp:
             importe_n = st.number_input("Importe €", min_value=0.01, max_value=99999.0,
                                          value=0.01, step=0.01, key="importe_n",
                                          label_visibility="collapsed")
             st.caption("Importe €")
+        try:
+            mes_num_n = MESES_ES.index(mes_n) + 1
+            import calendar as _cal
+            ultimo_dia_n = _cal.monthrange(int(anio_n), mes_num_n)[1]
+            fecha_n = date(int(anio_n), mes_num_n, min(dia_n, ultimo_dia_n))
+        except:
+            fecha_n = hoy
 
         col3, col4 = st.columns(2)
         with col3:
