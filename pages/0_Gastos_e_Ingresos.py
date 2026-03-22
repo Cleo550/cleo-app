@@ -486,6 +486,7 @@ GASTOS_BBVA = {
 
 with tab_bbva:
     total_fijos = 0.0
+    total_tr_anuales_mes = 0.0
 
     # Mod. 130 automático en meses de pago — calculado directamente
     ALTA_MES_130 = 3
@@ -570,6 +571,7 @@ with tab_bbva:
                                 key=f"sobre_bbva_{nombre_sobre}_{mi}_{anio}",
                                 disabled=True)
             total_fijos += float(anual_guardado)
+            total_tr_anuales_mes += float(anual_guardado)
             st.info(f"💰 Este mes toca pagar **{nombre_sobre}**: {anual_guardado:.2f} EUR (ahorrado en Trade Republic)")
 
     for gasto, importe in GASTOS_BBVA.items():
@@ -688,17 +690,19 @@ with tab_efectivo:
     st.metric("Total Efectivo", f"{total_extras:.2f} EUR")
 
 total_gastos = total_fijos + total_extras
+# Los pagos anuales de TR salen del ahorro, no del dinero del mes
+total_gastos_mes = total_gastos - total_tr_anuales_mes
 
 st.divider()
 
 # --- SECCION 4: RESUMEN FINAL ---
 st.markdown("<a name='resumen'></a><h2 style='color:#2ABFBF'>Resumen del mes</h2>", unsafe_allow_html=True)
 
-neto_real = total_ingresos - total_gastos - total_sobres
+neto_real = total_ingresos - total_gastos_mes - total_sobres
 
 col_a, col_b, col_c = st.columns(3)
 col_a.metric("Ingresos", f"{total_ingresos:.2f} EUR")
-col_b.metric("Total salidas", f"{total_gastos + total_sobres:.2f} EUR")
+col_b.metric("Total salidas", f"{total_gastos_mes + total_sobres:.2f} EUR")
 color_neto = "green" if neto_real >= 0 else "red"
 col_c.markdown(f"<p style='font-size:14px;color:grey'>Dinero libre</p><p style='font-size:2rem;font-weight:bold;color:{color_neto}'>{neto_real:.2f} EUR</p>", unsafe_allow_html=True)
 
@@ -735,6 +739,8 @@ with st.expander("Ver desglose completo"):
     st.markdown("---")
     st.write(f"**Ingresos:** {total_ingresos:.2f} EUR")
     st.write(f"**- Trade Republic:** -{total_sobres:.2f} EUR")
-    st.write(f"**- BBVA:** -{total_fijos:.2f} EUR")
+    st.write(f"**- BBVA (sin TR anuales):** -{total_fijos - total_tr_anuales_mes:.2f} EUR")
+    if total_tr_anuales_mes > 0:
+        st.write(f"**- TR pagos anuales (de ahorro):** -{total_tr_anuales_mes:.2f} EUR (no resta del mes)")
     st.write(f"**- Efectivo:** -{total_extras:.2f} EUR")
     st.markdown(f"<b>= Dinero libre: <span style='color:{'green' if neto_real >= 0 else 'red'};'>{neto_real:.2f} EUR</span></b>", unsafe_allow_html=True)
