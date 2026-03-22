@@ -336,14 +336,35 @@ with st.expander("⚡ Añadir servicio esporádico", expanded=False):
         with c7:
             esp_tarifa = st.number_input("Tarifa €/h", min_value=1.0, max_value=100.0, value=14.0, step=0.5)
 
-        st.markdown("**Días trabajados** (escribe cada fecha y pulsa Añadir):")
-        # Campo de texto para ir añadiendo fechas — dentro del form no podemos usar botones extra
-        # así que usamos un text_area con formato dd/mm/aaaa separadas por comas
-        esp_fechas_raw = st.text_input(
-            "Fechas (dd/mm/aaaa, separadas por comas)",
-            placeholder=f"Ej: 15/03/{anio}, 22/03/{anio}",
-            help="Escribe los días que has trabajado separados por comas"
+        st.markdown("**Días trabajados:**")
+        st.caption("Selecciona uno o varios días del mes en el calendario.")
+        # Selector de fechas múltiple nativo de Streamlit
+        import calendar as _cal
+        primer_dia_mes = datetime(int(anio), mi, 1).date()
+        ultimo_dia_mes = datetime(int(anio), mi, _cal.monthrange(int(anio), mi)[1]).date()
+        esp_fechas_sel = st.date_input(
+            "Días del servicio",
+            value=(primer_dia_mes, primer_dia_mes),
+            min_value=primer_dia_mes,
+            max_value=ultimo_dia_mes,
+            format="DD/MM/YYYY",
+            help="Selecciona el primer y último día si es un rango, o el mismo día dos veces si es un solo día"
         )
+        # Convertir a lista de fechas dd/mm/aaaa
+        from datetime import timedelta
+        if isinstance(esp_fechas_sel, (list, tuple)) and len(esp_fechas_sel) == 2:
+            fecha_ini, fecha_fin = esp_fechas_sel[0], esp_fechas_sel[1]
+            esp_fechas_raw = []
+            d = fecha_ini
+            while d <= fecha_fin:
+                esp_fechas_raw.append(d.strftime("%d/%m/%Y"))
+                d += timedelta(days=1)
+        elif isinstance(esp_fechas_sel, (list, tuple)) and len(esp_fechas_sel) == 1:
+            esp_fechas_raw = [esp_fechas_sel[0].strftime("%d/%m/%Y")]
+        else:
+            esp_fechas_raw = [esp_fechas_sel.strftime("%d/%m/%Y")] if hasattr(esp_fechas_sel, 'strftime') else []
+        if esp_fechas_raw:
+            st.caption(f"Días seleccionados: {', '.join(esp_fechas_raw)}")
 
         esp_tipo = st.radio(
             "Tipo de cobro",
@@ -354,16 +375,8 @@ with st.expander("⚡ Añadir servicio esporádico", expanded=False):
         if submitted_esp:
             if esp_nombre:
                 esp_factura = esp_tipo.startswith("🧾")
-                # Parsear fechas
-                esp_fechas = []
-                if esp_fechas_raw:
-                    for f in esp_fechas_raw.split(","):
-                        f = f.strip()
-                        if f:
-                            esp_fechas.append(f)
-                # Si no puso fechas, usar día 1 del mes como placeholder
-                if not esp_fechas:
-                    esp_fechas = [f"01/{mi:02d}/{int(anio)}"]
+                # Usar las fechas seleccionadas en el calendario
+                esp_fechas = esp_fechas_raw if esp_fechas_raw else [f"01/{mi:02d}/{int(anio)}"]
                 esp_total = len(esp_fechas) * esp_horas * esp_tarifa
                 servicios_esp.append({
                     "nombre": esp_nombre,

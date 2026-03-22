@@ -73,7 +73,7 @@ def calcular_dias(cliente_data, anio, mes_idx):
             for s in cal.monthdays2calendar(int(anio), mes_idx)
             for d, ds in s if d != 0 and ds in cliente_data["w"]]
 
-def generar_imagen(cn, c, mi, anio, dias, num_factura, lineas_extra=None):
+def generar_imagen(cn, c, mi, anio, dias, num_factura, lineas_extra=None, es_recibo=False):
     if lineas_extra is None:
         lineas_extra = []
 
@@ -101,13 +101,20 @@ def generar_imagen(cn, c, mi, anio, dias, num_factura, lineas_extra=None):
         draw.text((W//2 - 40, 20), "CLEO PRO", font=font_title, fill="black")
         y_after_logo = 60
 
-    # Cabecera
-    if c["v"]:
+    # Cabecera — Recibo / Bono Mensual / Nº Factura
+    if es_recibo:
+        texto_cab = f"Nº Recibo: {num_factura}" if num_factura else "RECIBO"
+        draw.text((W - 280, y_after_logo), texto_cab, font=font_bold, fill="black")
+        # Fecha del recibo = primer día del servicio
+        fecha_recibo = dias[0] if dias else f"01/{mi:02d}/{int(anio)}"
+        draw.text((W - 280, y_after_logo + 28), f"Fecha: {fecha_recibo}", font=font_normal, fill="black")
+    elif c["v"]:
         texto_cab = f"Nº Factura: {num_factura}" if num_factura else "Nº Factura: "
         draw.text((W - 280, y_after_logo), texto_cab, font=font_bold, fill="black")
+        draw.text((W - 280, y_after_logo + 28), f"Fecha: 01/{mi:02d}/{int(anio)}", font=font_normal, fill="black")
     else:
         draw.text((W - 280, y_after_logo), "BONO MENSUAL", font=font_bold, fill="black")
-    draw.text((W - 280, y_after_logo + 28), f"Fecha: 01/{mi:02d}/{int(anio)}", font=font_normal, fill="black")
+        draw.text((W - 280, y_after_logo + 28), f"Fecha: 01/{mi:02d}/{int(anio)}", font=font_normal, fill="black")
 
     # Emisor y Cliente
     y_info = y_after_logo + 60
@@ -168,9 +175,11 @@ def generar_imagen(cn, c, mi, anio, dias, num_factura, lineas_extra=None):
         draw.text((10, y_pie+40), "Bizum: 654 422 330", font=font_normal, fill="black")
         draw.text((10, y_pie+65), "Operacion exenta de IVA segun Art. 20.Uno.22 Ley 37/1992", font=font_tiny, fill=(130,130,130))
         draw.text((10, y_pie+80), "y acogida al Regimen de Franquicia de IVA (Directiva UE 2020/285)", font=font_tiny, fill=(130,130,130))
-    if not c["v"]:
+    if not c["v"] and not es_recibo:
         draw.text((10, y_pie), "FORMA DE PAGO: En efectivo", font=font_normal, fill="black")
-    draw.text((10, y_pie+110), "NOTA: Pago tipo Bono por adelantado.", font=font_small, fill=(100,100,100))
+        draw.text((10, y_pie+110), "NOTA: Pago tipo Bono por adelantado.", font=font_small, fill=(100,100,100))
+    elif es_recibo:
+        draw.text((10, y_pie), "FORMA DE PAGO: En efectivo", font=font_normal, fill="black")
 
     buf = io.BytesIO()
     img.save(buf, format="PNG")
@@ -263,9 +272,11 @@ if es_esporadico:
 
     # Usar las fechas guardadas en el servicio, o generar una si no hay
     fechas_srv = srv.get("fechas", [f"01/{mi:02d}/{int(anio)}"])
+    # Es recibo si es bono (no factura legal)
+    es_rec = not c_esp["v"]
 
     # Generar imagen con las fechas reales como líneas de la tabla
-    img_bytes = generar_imagen(cn, c_esp, mi, anio, fechas_srv, num_factura, [])
+    img_bytes = generar_imagen(cn, c_esp, mi, anio, fechas_srv, num_factura, [], es_recibo=es_rec)
     st.image(img_bytes, use_container_width=True)
 
     col_nf, col_env = st.columns(2)
@@ -280,7 +291,7 @@ if es_esporadico:
             supabase.table("datos_app").upsert({"clave": key_nf, "valor": json.dumps(nuevo_nf)}).execute()
             st.rerun()
     with col_env:
-        tipo_doc = "Factura" if c_esp["v"] else "Bono"
+        tipo_doc = "Factura" if c_esp["v"] else "Recibo"
         nombre_archivo = f"{tipo_doc}_{cn}_{mn}_{int(anio)}_srv{srv_idx+1}.png"
         st.download_button("📥 Guardar imagen", img_bytes, nombre_archivo, use_container_width=True)
         st.caption("Guarda en el dispositivo")
