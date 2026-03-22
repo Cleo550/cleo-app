@@ -267,6 +267,25 @@ for cliente, datos in CLIS.items():
     dias_trabajados[cliente] = num_dias
     ingresos_reales[cliente] = total_cliente
 
+# Mostrar servicios esporádicos del mes (antes de los formularios)
+if servicios_esp:
+    st.markdown("*Servicios esporádicos este mes:*")
+    for idx, esp in enumerate(servicios_esp):
+        badge = "🧾" if esp.get("factura") else "💵"
+        c1, c2, c3 = st.columns([3.5, 1.5, 0.5])
+        with c1:
+            st.write(f"{badge} **{esp['nombre']}** · {esp['horas']}h · {esp['tarifa']} €/h")
+        with c2:
+            st.write(f"**{esp['importe']:.2f} €**")
+        with c3:
+            if st.button("🗑️", key=f"del_esp_{idx}_{mi}_{anio}"):
+                servicios_esp.pop(idx)
+                set_dato(key_esp_mes, servicios_esp)
+                cargar_todos_datos.clear()
+                st.rerun()
+
+esporadicos_total = sum(e["importe"] for e in servicios_esp)
+
 # --- NUEVO CLIENTE ---
 DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 with st.expander("➕ Añadir nuevo cliente", expanded=False):
@@ -396,25 +415,6 @@ with st.expander("⚡ Añadir servicio esporádico", expanded=False):
                 st.rerun()
             else:
                 st.warning("Escribe el nombre del cliente")
-# Mostrar servicios esporádicos del mes
-if servicios_esp:
-    st.markdown("*Servicios esporádicos este mes:*")
-    for idx, esp in enumerate(servicios_esp):
-        badge = "🧾" if esp.get("factura") else "💵"
-        c1, c2, c3 = st.columns([3.5, 1.5, 0.5])
-        with c1:
-            st.write(f"{badge} **{esp['nombre']}** · {esp['horas']}h · {esp['tarifa']} €/h")
-        with c2:
-            st.write(f"**{esp['importe']:.2f} €**")
-        with c3:
-            if st.button("🗑️", key=f"del_esp_{idx}_{mi}_{anio}"):
-                servicios_esp.pop(idx)
-                set_dato(key_esp_mes, servicios_esp)
-                cargar_todos_datos.clear()
-                st.rerun()
-
-esporadicos_total = sum(e["importe"] for e in servicios_esp)
-
 # Clientes inactivos — posibilidad de reactivar
 inactivos_dict = get_dato("clientes_inactivos", {})
 if inactivos_dict:
