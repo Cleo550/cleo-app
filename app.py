@@ -1,5 +1,6 @@
 import streamlit as st
 from PIL import Image
+from calculadora import mostrar_calculadora
 
 st.set_page_config(page_title="Cleo Pro", layout="centered")
 
@@ -17,6 +18,7 @@ def check_password():
     st.stop()
 
 check_password()
+mostrar_calculadora()
 
 
 try:
