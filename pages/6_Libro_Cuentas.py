@@ -162,6 +162,30 @@ def set_importe_repetida(nombre, importe):
     except:
         pass
 
+def get_dia_mes_repetida(nombre, dia_def, mes_def):
+    """Lee el día y mes guardados para una repetida."""
+    try:
+        import json as _json
+        clave = f"rep_diames_{nombre.replace(' ','_')}"
+        r = supabase.table("datos_app").select("valor").eq("clave", clave).execute()
+        if r.data:
+            v = _json.loads(r.data[0]["valor"])
+            return int(v["dia"]), int(v["mes"])
+    except:
+        pass
+    return dia_def, mes_def
+
+def set_dia_mes_repetida(nombre, dia, mes):
+    """Guarda el día y mes personalizados de una repetida."""
+    try:
+        import json as _json
+        clave = f"rep_diames_{nombre.replace(' ','_')}"
+        supabase.table("datos_app").upsert(
+            {"clave": clave, "valor": _json.dumps({"dia": dia, "mes": mes})}
+        ).execute()
+    except:
+        pass
+
 # ─────────────────────────────────────────────
 # APLICAR REPETIDAS AUTOMÁTICAMENTE
 # ─────────────────────────────────────────────
@@ -188,14 +212,16 @@ def aplicar_repetidas():
             toca = False
 
         if toca and r["nombre"] not in nombres_auto_mes:
+            # Usar día guardado si existe
+            dia_real, _ = get_dia_mes_repetida(r["nombre"], r["dia"], r.get("mes", 1))
             ultimo_dia = calendar.monthrange(anio_actual, mes_actual)[1]
-            dia = min(r["dia"], ultimo_dia)
+            dia_real = min(dia_real, ultimo_dia)
             # Usar importe personalizado si existe, si no el por defecto
             importe_real = get_importe_repetida(r["nombre"])
             if importe_real is None:
                 importe_real = r["importe"]
             guardar_tx(
-                fecha=date(anio_actual, mes_actual, dia),
+                fecha=date(anio_actual, mes_actual, dia_real),
                 tipo=r["tipo"],
                 cuenta=r["cuenta"],
                 subcuenta=r["subcuenta"],
@@ -643,28 +669,59 @@ elif vista == "🔁 Repetidas":
             importe_guardado = get_importe_repetida(r["nombre"])
             importe_actual = importe_guardado if importe_guardado is not None else r["importe"]
 
-            c1, c2 = st.columns([3, 1.5])
+            # Leer día y mes guardados
+            dia_guardado, mes_guardado = get_dia_mes_repetida(
+                r["nombre"], r["dia"], r.get("mes", 1)
+            )
+
+            c1, c2, c3, c4 = st.columns([2.5, 0.8, 1.5, 1.5])
             with c1:
                 st.markdown(
                     f"<div style='padding:8px 0 2px 0'>"
                     f"<div style='font-weight:600;font-size:14px'>{r['nombre']}</div>"
-                    f"<div style='color:#aaa;font-size:11px'>{periodo_txt} · {r['categoria']} · {r['cuenta']}</div>"
+                    f"<div style='color:#aaa;font-size:11px'>{periodo_txt} · {r['cuenta']}</div>"
                     f"</div>", unsafe_allow_html=True)
             with c2:
+                nuevo_dia = st.number_input(
+                    "Día", min_value=1, max_value=31,
+                    value=int(dia_guardado), step=1,
+                    key=f"rep_dia_{r['nombre']}",
+                    label_visibility="collapsed"
+                )
+                st.caption("Día")
+            with c3:
+                nuevo_mes = st.selectbox(
+                    "Mes", MESES_ES,
+                    index=int(mes_guardado) - 1,
+                    key=f"rep_mes_{r['nombre']}",
+                    label_visibility="collapsed"
+                ) if r["periodo"] != "mensual" else st.markdown(
+                    "<span style='color:#aaa;font-size:12px'>Todos</span>",
+                    unsafe_allow_html=True) or MESES_ES[int(mes_guardado) - 1]
+                st.caption("Mes")
+            with c4:
                 nuevo_importe = st.number_input(
-                    f"imp_{r['nombre']}",
+                    "Importe",
                     min_value=0.01, max_value=99999.0,
                     value=float(importe_actual),
                     step=0.01,
                     key=f"rep_imp_{r['nombre']}",
                     label_visibility="collapsed"
                 )
-                if abs(nuevo_importe - importe_actual) > 0.001:
-                    set_importe_repetida(r["nombre"], nuevo_importe)
-                    st.success("✅ Guardado")
-                    st.rerun()
+                st.caption("Importe €")
 
-            st.markdown("<hr style='margin:2px 0;border-color:#f2f2f2'>", unsafe_allow_html=True)
+            # Guardar si cambia algo
+            mes_num_nuevo = MESES_ES.index(nuevo_mes) + 1 if isinstance(nuevo_mes, str) else int(mes_guardado)
+            cambio_diames = (nuevo_dia != dia_guardado or mes_num_nuevo != mes_guardado)
+            cambio_importe = abs(nuevo_importe - importe_actual) > 0.001
+            if cambio_diames:
+                set_dia_mes_repetida(r["nombre"], nuevo_dia, mes_num_nuevo)
+                st.rerun()
+            if cambio_importe:
+                set_importe_repetida(r["nombre"], nuevo_importe)
+                st.rerun()
+
+            st.markdown("<hr style='margin:4px 0;border-color:#f2f2f2'>", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🔄 Reaplicar este mes", use_container_width=True):
