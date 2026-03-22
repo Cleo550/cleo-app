@@ -139,6 +139,29 @@ def borrar_tx(id_tx):
     except:
         pass
 
+def get_importe_repetida(nombre):
+    """Lee el importe guardado para una repetida. Si no hay, devuelve None."""
+    try:
+        clave = f"rep_importe_{nombre.replace(' ','_')}"
+        r = supabase.table("datos_app").select("valor").eq("clave", clave).execute()
+        if r.data:
+            import json as _json
+            return float(_json.loads(r.data[0]["valor"]))
+    except:
+        pass
+    return None
+
+def set_importe_repetida(nombre, importe):
+    """Guarda el importe personalizado de una repetida en datos_app."""
+    try:
+        import json as _json
+        clave = f"rep_importe_{nombre.replace(' ','_')}"
+        supabase.table("datos_app").upsert(
+            {"clave": clave, "valor": _json.dumps(float(importe))}
+        ).execute()
+    except:
+        pass
+
 # ─────────────────────────────────────────────
 # APLICAR REPETIDAS AUTOMÁTICAMENTE
 # ─────────────────────────────────────────────
@@ -167,6 +190,10 @@ def aplicar_repetidas():
         if toca and r["nombre"] not in nombres_auto_mes:
             ultimo_dia = calendar.monthrange(anio_actual, mes_actual)[1]
             dia = min(r["dia"], ultimo_dia)
+            # Usar importe personalizado si existe, si no el por defecto
+            importe_real = get_importe_repetida(r["nombre"])
+            if importe_real is None:
+                importe_real = r["importe"]
             guardar_tx(
                 fecha=date(anio_actual, mes_actual, dia),
                 tipo=r["tipo"],
@@ -174,7 +201,7 @@ def aplicar_repetidas():
                 subcuenta=r["subcuenta"],
                 categoria=r["categoria"],
                 descripcion=r["nombre"],
-                importe=r["importe"],
+                importe=importe_real,
                 auto=True
             )
 
@@ -589,7 +616,7 @@ elif vista == "📊 Estad.":
 # ═══════════════════════════════════════════
 elif vista == "🔁 Repetidas":
     st.markdown("<h3 style='color:#FF69B4'>Transacciones repetidas</h3>", unsafe_allow_html=True)
-    st.caption("Se insertan automáticamente al abrir la app cada mes.")
+    st.caption("Se insertan automáticamente cada mes. Cambia el importe y se guarda para siempre.")
 
     for grupo, tipo_grupo, color_grupo in [
         ("Ingresos", "ingreso", "#2ABFBF"),
@@ -599,31 +626,45 @@ elif vista == "🔁 Repetidas":
         items = [r for r in REPETIDAS if r["tipo"] == tipo_grupo]
         if not items:
             continue
-        total_g = sum(r["importe"] for r in items)
-        st.markdown(f"<div style='font-weight:bold;color:{color_grupo};padding:10px 0 4px 0'>"
-                    f"{grupo}  <span style='float:right'>€ {total_g:,.2f}</span></div>",
+        st.markdown(f"<div style='font-weight:bold;color:{color_grupo};padding:12px 0 6px 0;font-size:15px'>{grupo}</div>",
                     unsafe_allow_html=True)
 
         for r in items:
             if r["periodo"] == "mensual":
                 periodo_txt = "Cada mes"
             elif r["periodo"] == "anual":
-                periodo_txt = f"Cada año ({MESES_ES[r.get('mes',1)-1][:3]})"
+                periodo_txt = f"Cada año · {MESES_ES[r.get('mes',1)-1]}"
             elif r["periodo"] == "semestral":
                 periodo_txt = "Cada 6 meses"
             else:
                 periodo_txt = r["periodo"]
 
-            st.markdown(f"""
-            <div style='display:flex;justify-content:space-between;align-items:center;
-                        padding:10px 4px;border-bottom:1px solid #f5f5f5'>
-                <div>
-                    <div style='font-weight:600;font-size:14px'>{r['nombre']}</div>
-                    <div style='color:#aaa;font-size:12px'>{periodo_txt} · {r['categoria']} · {r['cuenta']}</div>
-                </div>
-                <span style='color:{color_grupo};font-weight:bold'>€ {r['importe']:,.2f}</span>
-            </div>
-            """, unsafe_allow_html=True)
+            # Leer importe guardado (personalizado) o usar el por defecto
+            importe_guardado = get_importe_repetida(r["nombre"])
+            importe_actual = importe_guardado if importe_guardado is not None else r["importe"]
+
+            c1, c2 = st.columns([3, 1.5])
+            with c1:
+                st.markdown(
+                    f"<div style='padding:8px 0 2px 0'>"
+                    f"<div style='font-weight:600;font-size:14px'>{r['nombre']}</div>"
+                    f"<div style='color:#aaa;font-size:11px'>{periodo_txt} · {r['categoria']} · {r['cuenta']}</div>"
+                    f"</div>", unsafe_allow_html=True)
+            with c2:
+                nuevo_importe = st.number_input(
+                    f"imp_{r['nombre']}",
+                    min_value=0.01, max_value=99999.0,
+                    value=float(importe_actual),
+                    step=0.01,
+                    key=f"rep_imp_{r['nombre']}",
+                    label_visibility="collapsed"
+                )
+                if abs(nuevo_importe - importe_actual) > 0.001:
+                    set_importe_repetida(r["nombre"], nuevo_importe)
+                    st.success("✅ Guardado")
+                    st.rerun()
+
+            st.markdown("<hr style='margin:2px 0;border-color:#f2f2f2'>", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🔄 Reaplicar este mes", use_container_width=True):
