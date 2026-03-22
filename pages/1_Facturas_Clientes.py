@@ -53,7 +53,10 @@ def cargar_clis_activos():
     for c in extras:
         if c["nombre"] not in inactivos:
             clis[c["nombre"]] = {
-                "n": c["nombre"], "f": "---", "d": "---", "p": "---",
+                "n": c.get("nombre_completo") or c["nombre"],
+                "f": c.get("nif") or "---",
+                "d": c.get("dir") or "---",
+                "p": c.get("cp") or "---",
                 "t": c["tarifa"], "h": c["horas"], "w": c.get("dias", []),
                 "v": c.get("factura", False)
             }
@@ -243,20 +246,24 @@ if es_esporadico:
     c_esp = {"n": cn, "f": "---", "d": "---", "p": "---",
              "t": srv["tarifa"], "h": srv["horas"], "w": [], "v": srv.get("factura", False)}
 
-    # Generar imagen con una sola línea: "Servicio de limpieza" con las horas y tarifa
+    # Usar datos completos del cliente guardados en el servicio
+    c_esp = {
+        "n": srv.get("nombre_completo") or cn,
+        "f": srv.get("nif") or "---",
+        "d": srv.get("dir") or "---",
+        "p": srv.get("cp") or "---",
+        "t": srv["tarifa"], "h": srv["horas"], "w": [],
+        "v": srv.get("factura", False)
+    }
+
     key_nf = f"nf_esp_{cn}_{srv_idx}_{mi}_{anio}"
     if key_nf not in st.session_state:
         st.session_state[key_nf] = get_dato(key_nf, "")
     num_factura = st.session_state[key_nf]
 
-    # Crear fecha aproximada (día 1 del mes como placeholder)
-    fecha_srv = f"01/{mi:02d}/{int(anio)}"
-    img_bytes = generar_imagen(cn, c_esp, mi, anio, [fecha_srv], num_factura, [
-        (f"Servicio limpieza {srv['horas']}h x {srv['tarifa']}€/h", 0)
-    ])
-    # Recalcular con el importe real
+    # Generar imagen con el concepto y el importe del servicio
     img_bytes = generar_imagen(cn, c_esp, mi, anio, [], num_factura,
-                                [(f"Servicio de limpieza", srv["importe"])])
+                                [("Servicio de limpieza", srv["importe"])])
     st.image(img_bytes, use_container_width=True)
 
     col_nf, col_env = st.columns(2)
