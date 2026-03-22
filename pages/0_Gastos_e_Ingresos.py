@@ -110,11 +110,54 @@ def set_dato(clave, valor):
         pass
 
 # --- DATOS CLIENTES ---
-CLIS = {
-    "Ania":     {"t": 13.0, "h": 5.0, "w": [0, 1]},
-    "Lola":     {"t": 14.0, "h": 4.0, "w": [2]},
-    "Yordhana": {"t": 14.0, "h": 4.0, "w": [3]},
+CLIS_BASE = {
+    "Ania":     {"t": 13.0, "h": 5.0, "w": [0, 1], "v": False},
+    "Lola":     {"t": 14.0, "h": 4.0, "w": [2],    "v": True},
+    "Yordhana": {"t": 14.0, "h": 4.0, "w": [3],    "v": True},
 }
+
+def cargar_clientes():
+    """Devuelve solo clientes activos (no inactivos a fecha de hoy)."""
+    from datetime import date
+    hoy = str(date.today())
+    inactivos = get_dato("clientes_inactivos", {})  # {nombre: fecha_baja}
+    extras = get_dato("clientes_extra", [])
+
+    # Clientes base activos
+    clis = {}
+    for k, v in CLIS_BASE.items():
+        if k not in inactivos:
+            clis[k] = v
+
+    # Clientes extra activos
+    for c in extras:
+        if c["nombre"] not in inactivos:
+            clis[c["nombre"]] = {
+                "t": c["tarifa"], "h": c["horas"],
+                "w": c["dias"],   "v": c.get("factura", False)
+            }
+    return clis
+
+def guardar_cliente_extra(nombre, tarifa, horas, dias, factura):
+    extras = get_dato("clientes_extra", [])
+    extras = [c for c in extras if c["nombre"] != nombre]
+    extras.append({"nombre": nombre, "tarifa": tarifa,
+                   "horas": horas, "dias": dias, "factura": factura})
+    set_dato("clientes_extra", extras)
+
+def dar_baja_cliente(nombre):
+    """Marca al cliente como inactivo desde hoy. Sus datos históricos se conservan."""
+    from datetime import date
+    inactivos = get_dato("clientes_inactivos", {})
+    inactivos[nombre] = str(date.today())
+    set_dato("clientes_inactivos", inactivos)
+
+def reactivar_cliente(nombre):
+    inactivos = get_dato("clientes_inactivos", {})
+    inactivos.pop(nombre, None)
+    set_dato("clientes_inactivos", inactivos)
+
+CLIS = cargar_clientes()
 
 MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
          "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
@@ -163,10 +206,40 @@ for cliente, datos in CLIS.items():
     num_dias_defecto = len(dias_cal)
     key_dias = f"dias_{cliente}_{mi}_{anio}"
 
-    # Cargar valor guardado en Supabase
     valor_guardado = int(get_dato(key_dias, num_dias_defecto))
 
-    st.markdown(f"**{cliente}** · {datos['h']}h/dia · {datos['t']} EUR/h")
+    tipo_badge = "🧾 Factura" if datos.get("v") else "💵 Bono"
+    color_badge = "#2ABFBF" if datos.get("v") else "#FF69B4"
+
+    # Cabecera cliente con badge y botón baja
+    c_h1, c_h2, c_h3 = st.columns([3.5, 1.5, 0.5])
+    with c_h1:
+        st.markdown(f"**{cliente}** · {datos['h']}h/día · {datos['t']} EUR/h")
+    with c_h2:
+        st.markdown(
+            f"<span style='background:{color_badge};color:white;border-radius:8px;"
+            f"padding:2px 8px;font-size:12px'>{tipo_badge}</span>",
+            unsafe_allow_html=True)
+    with c_h3:
+        if st.button("🗑️", key=f"btn_baja_{cliente}", help=f"Dar de baja a {cliente}"):
+            st.session_state[f"confirmar_baja_{cliente}"] = True
+
+    # Confirmación de baja
+    if st.session_state.get(f"confirmar_baja_{cliente}", False):
+        st.warning(f"¿Dar de baja a **{cliente}**? Solo desaparecerá del formulario a partir de hoy. Todos sus datos históricos se conservan.")
+        cc1, cc2 = st.columns(2)
+        with cc1:
+            if st.button("✅ Sí, dar de baja", key=f"baja_si_{cliente}", type="primary"):
+                dar_baja_cliente(cliente)
+                cargar_todos_datos.clear()
+                st.session_state.pop(f"confirmar_baja_{cliente}", None)
+                st.success(f"{cliente} dado de baja. Sus datos históricos están intactos.")
+                st.rerun()
+        with cc2:
+            if st.button("Cancelar", key=f"baja_no_{cliente}"):
+                st.session_state.pop(f"confirmar_baja_{cliente}", None)
+                st.rerun()
+
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
         num_dias = st.number_input(
@@ -188,6 +261,51 @@ for cliente, datos in CLIS.items():
         st.write(f"**{total_cliente:.2f} EUR**")
     dias_trabajados[cliente] = num_dias
     ingresos_reales[cliente] = total_cliente
+
+# --- NUEVO CLIENTE + CLIENTES INACTIVOS ---
+with st.expander("➕ Añadir nuevo cliente"):
+    DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        nuevo_nombre = st.text_input("Nombre", placeholder="Ej: María", key="nuevo_cli_nombre")
+    with c2:
+        nueva_tarifa = st.number_input("Tarifa €/h", min_value=1.0, max_value=100.0,
+                                        value=14.0, step=0.5, key="nuevo_cli_tarifa")
+    with c3:
+        nuevas_horas = st.number_input("Horas/día", min_value=0.5, max_value=12.0,
+                                        value=4.0, step=0.5, key="nuevo_cli_horas")
+    nuevos_dias = st.multiselect("Días de trabajo", DIAS_SEMANA, key="nuevo_cli_dias")
+    tipo_factura = st.radio(
+        "Tipo de cobro",
+        ["🧾 Factura legal (cuenta para Mod.130 e IRPF)", "💵 Bono en efectivo (no cuenta fiscalmente)"],
+        key="nuevo_cli_tipo",
+        help="Factura: emite factura legal y cuenta para Hacienda. Bono: cobro en efectivo, no se declara."
+    )
+    es_factura = tipo_factura.startswith("🧾")
+    dias_idx = [DIAS_SEMANA.index(d) for d in nuevos_dias]
+
+    if st.button("💾 Guardar cliente", type="primary", key="btn_guardar_cliente"):
+        if nuevo_nombre and nuevos_dias:
+            guardar_cliente_extra(nuevo_nombre, nueva_tarifa, nuevas_horas, dias_idx, es_factura)
+            cargar_todos_datos.clear()
+            st.success(f"✅ {nuevo_nombre} añadido como {'factura' if es_factura else 'bono'}")
+            st.rerun()
+        else:
+            st.warning("Escribe el nombre y selecciona al menos un día")
+
+# Clientes inactivos — posibilidad de reactivar
+inactivos_dict = get_dato("clientes_inactivos", {})
+if inactivos_dict:
+    with st.expander(f"👤 Clientes inactivos ({len(inactivos_dict)})"):
+        for nombre_inact, fecha_baja in inactivos_dict.items():
+            ci1, ci2 = st.columns([3, 1])
+            with ci1:
+                st.write(f"**{nombre_inact}** — baja desde {fecha_baja}")
+            with ci2:
+                if st.button("↩️ Reactivar", key=f"reactivar_{nombre_inact}"):
+                    reactivar_cliente(nombre_inact)
+                    cargar_todos_datos.clear()
+                    st.rerun()
 
 st.markdown("---")
 
