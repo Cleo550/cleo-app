@@ -362,11 +362,6 @@ with st.expander("⚡ Añadir servicio esporádico", expanded=False):
                 st.rerun()
             else:
                 st.warning("Escribe el nombre del cliente")
-        with ec2:
-            if st.button("Cancelar", key="btn_cancelar_esp", use_container_width=True):
-                st.session_state["mostrar_esp"] = False
-                st.rerun()
-
 # Mostrar servicios esporádicos del mes
 if servicios_esp:
     st.markdown("*Servicios esporádicos este mes:*")
