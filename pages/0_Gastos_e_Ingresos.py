@@ -267,6 +267,10 @@ for cliente, datos in CLIS.items():
     dias_trabajados[cliente] = num_dias
     ingresos_reales[cliente] = total_cliente
 
+# Cargar servicios esporádicos del mes
+key_esp_mes = f"servicios_esporadicos_{mi}_{anio}"
+servicios_esp = get_dato(key_esp_mes, [])
+
 # Mostrar servicios esporádicos del mes (antes de los formularios)
 if servicios_esp:
     st.markdown("*Servicios esporádicos este mes:*")
@@ -329,9 +333,6 @@ with st.expander("➕ Añadir nuevo cliente", expanded=False):
                 st.warning("Escribe el nombre y selecciona al menos un día")
 
 # --- SERVICIOS ESPORÁDICOS ---
-key_esp_mes = f"servicios_esporadicos_{mi}_{anio}"
-servicios_esp = get_dato(key_esp_mes, [])
-
 with st.expander("⚡ Añadir servicio esporádico", expanded=False):
     st.caption("Cada vez que hagas un trabajo puntual, añade una entrada. Pueden ser varias del mismo cliente en el mismo mes.")
     with st.form("form_esp", clear_on_submit=True):
