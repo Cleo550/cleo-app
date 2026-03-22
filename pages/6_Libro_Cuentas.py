@@ -644,6 +644,86 @@ elif vista == "🔁 Repetidas":
     st.markdown("<h3 style='color:#FF69B4'>Transacciones repetidas</h3>", unsafe_allow_html=True)
     st.caption("Se insertan automáticamente cada mes. Cambia el importe y se guarda para siempre.")
 
+    # ── Calendario de referencia ──
+    if "rep_cal_mes" not in st.session_state:
+        st.session_state["rep_cal_mes"] = datetime.now().month
+    if "rep_cal_anio" not in st.session_state:
+        st.session_state["rep_cal_anio"] = datetime.now().year
+
+    col_cp, col_cl, col_cn = st.columns([1, 3, 1])
+    with col_cp:
+        if st.button("◀", key="cal_prev", use_container_width=True):
+            if st.session_state["rep_cal_mes"] == 1:
+                st.session_state["rep_cal_mes"] = 12
+                st.session_state["rep_cal_anio"] -= 1
+            else:
+                st.session_state["rep_cal_mes"] -= 1
+            st.rerun()
+    with col_cl:
+        st.markdown(
+            f"<div style='text-align:center;font-weight:bold;font-size:15px;padding:6px 0'>"
+            f"{MESES_ES[st.session_state['rep_cal_mes']-1]} {st.session_state['rep_cal_anio']}"
+            f"</div>", unsafe_allow_html=True)
+    with col_cn:
+        if st.button("▶", key="cal_next", use_container_width=True):
+            if st.session_state["rep_cal_mes"] == 12:
+                st.session_state["rep_cal_mes"] = 1
+                st.session_state["rep_cal_anio"] += 1
+            else:
+                st.session_state["rep_cal_mes"] += 1
+            st.rerun()
+
+    # Generar calendario SVG en español
+    cal_mes = st.session_state["rep_cal_mes"]
+    cal_anio = st.session_state["rep_cal_anio"]
+    dias_semana = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+    primer_dia = date(cal_anio, cal_mes, 1).weekday()  # 0=lun
+    total_dias = calendar.monthrange(cal_anio, cal_mes)[1]
+    hoy_cal = date.today()
+
+    cell_w, cell_h = 42, 36
+    cols_cal = 7
+    header_h = 28
+    filas = math.ceil((primer_dia + total_dias) / 7)
+    svg_w = cell_w * cols_cal
+    svg_h = header_h + filas * cell_h + 8
+
+    svg_parts = [f'<svg viewBox="0 0 {svg_w} {svg_h}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:360px;display:block;margin:0 auto">']
+
+    # Fondo
+    svg_parts.append(f'<rect width="{svg_w}" height="{svg_h}" fill="#fafafa" rx="8"/>')
+
+    # Cabecera días semana
+    for i, d in enumerate(dias_semana):
+        x = i * cell_w + cell_w // 2
+        color_hdr = "#FF69B4" if i >= 5 else "#999"
+        svg_parts.append(f'<text x="{x}" y="{header_h - 6}" text-anchor="middle" font-size="11" fill="{color_hdr}" font-weight="bold">{d}</text>')
+
+    # Días del mes
+    dia_actual = 1
+    for fila in range(filas):
+        for col in range(cols_cal):
+            pos = fila * cols_cal + col
+            if pos < primer_dia or dia_actual > total_dias:
+                col += 1
+                continue
+            cx = col * cell_w + cell_w // 2
+            cy = header_h + fila * cell_h + cell_h // 2
+            es_hoy = (dia_actual == hoy_cal.day and cal_mes == hoy_cal.month and cal_anio == hoy_cal.year)
+            es_finde = col >= 5
+            # Círculo para hoy
+            if es_hoy:
+                svg_parts.append(f'<circle cx="{cx}" cy="{cy}" r="14" fill="#2ABFBF"/>')
+                color_txt = "white"
+            else:
+                color_txt = "#FF69B4" if es_finde else "#333"
+            svg_parts.append(f'<text x="{cx}" y="{cy + 5}" text-anchor="middle" font-size="13" fill="{color_txt}" font-weight="{"bold" if es_hoy else "normal"}">{dia_actual}</text>')
+            dia_actual += 1
+
+    svg_parts.append('</svg>')
+    st.markdown("".join(svg_parts), unsafe_allow_html=True)
+    st.markdown("---")
+
     for grupo, tipo_grupo, color_grupo in [
         ("Ingresos", "ingreso", "#2ABFBF"),
         ("Gastos", "gasto", "#FF69B4"),
