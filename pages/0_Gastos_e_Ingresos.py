@@ -487,6 +487,7 @@ GASTOS_BBVA = {
 with tab_bbva:
     total_fijos = 0.0
     total_tr_anuales_mes = 0.0
+    gastos_bbva_reales = {}  # Para el desglose: {nombre: importe_real}
 
     # Mod. 130 automático en meses de pago — calculado directamente
     ALTA_MES_130 = 3
@@ -587,6 +588,7 @@ with tab_bbva:
             if val != val_guardado_bbva:
                 set_dato(clave_bbva, val)
             total_fijos += val
+            gastos_bbva_reales[gasto] = val
 
     key_bbva_extra = f"bbva_extra_{mi}_{anio}"
     if key_bbva_extra not in st.session_state:
@@ -730,11 +732,13 @@ with st.expander("Ver desglose completo"):
     st.write(f"**= Total Trade Republic: {total_sobres:.2f} EUR**")
     st.markdown("---")
     st.markdown("<b style='color:#FF69B4'>BBVA:</b>", unsafe_allow_html=True)
-    # Pagos anuales de Trade Republic que tocan este mes
-    for gasto, importe in GASTOS_BBVA.items():
+    for gasto, importe in gastos_bbva_reales.items():
         st.write(f"- {gasto}: {importe:.2f} EUR")
     for nombre_b, importe_b in st.session_state[key_bbva_extra]:
         st.write(f"- {nombre_b}: {importe_b:.2f} EUR")
+    if total_tr_anuales_mes > 0:
+        st.write(f"- 💸 Gastos del mes: {total_bbva_mensual:.2f} EUR")
+        st.write(f"- 🔄 Transferir desde TR: {total_tr_anuales_mes:.2f} EUR")
     st.write(f"**= Total BBVA: {total_fijos:.2f} EUR**")
     st.markdown("---")
     st.markdown("<b style='color:#FF69B4'>Gastos Efectivo:</b>", unsafe_allow_html=True)
