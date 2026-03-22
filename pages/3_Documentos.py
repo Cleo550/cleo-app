@@ -2,7 +2,6 @@ import streamlit as st
 import json
 import uuid
 from supabase import create_client
-from calculadora import mostrar_calculadora
 
 st.set_page_config(page_title="Documentos - Cleo Pro", layout="centered")
 
@@ -20,7 +19,6 @@ def check_password():
     st.stop()
 
 check_password()
-mostrar_calculadora()
 
 # --- SUPABASE ---
 @st.cache_resource

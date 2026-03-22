@@ -2,7 +2,6 @@ import streamlit as st
 from supabase import create_client
 from datetime import datetime
 import uuid
-from calculadora import mostrar_calculadora
 
 st.set_page_config(page_title="Facturas Gastos - Cleo Pro", layout="centered")
 
@@ -20,7 +19,6 @@ def check_password():
     st.stop()
 
 check_password()
-mostrar_calculadora()
 
 
 @st.cache_resource

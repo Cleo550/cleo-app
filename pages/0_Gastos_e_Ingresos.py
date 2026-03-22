@@ -3,7 +3,6 @@ import calendar
 from datetime import datetime
 import json
 from supabase import create_client
-from calculadora import mostrar_calculadora
 
 st.set_page_config(page_title="Gastos e Ingresos - Cleo Pro", layout="centered")
 
@@ -21,7 +20,6 @@ def check_password():
     st.stop()
 
 check_password()
-mostrar_calculadora()
 
 # --- SUPABASE ---
 @st.cache_resource
