@@ -3,6 +3,7 @@ import calendar as cal_module
 import json
 from supabase import create_client
 from datetime import datetime
+from calculadora import mostrar_calculadora
 
 st.set_page_config(page_title="Modelo 130 - Cleo Pro", layout="centered")
 
@@ -20,6 +21,7 @@ def check_password():
     st.stop()
 
 check_password()
+mostrar_calculadora()
 
 @st.cache_resource
 def get_supabase():
