@@ -550,6 +550,7 @@ with tab_bbva:
                                 value=importe_130, step=0.5, label_visibility="collapsed",
                                 key=f"mod130_bbva_{mi}_{anio}", disabled=True)
             total_fijos += importe_130
+            total_tr_anuales_mes += importe_130
             if not ya_pagado and importe_130 > 0:
                 st.warning(f"⚠️ Este mes toca pagar el Mod. 130: {importe_130:.2f} EUR — Ve a Modelo 130 para presentarlo")
 
