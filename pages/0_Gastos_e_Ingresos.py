@@ -267,105 +267,105 @@ for cliente, datos in CLIS.items():
     dias_trabajados[cliente] = num_dias
     ingresos_reales[cliente] = total_cliente
 
-# --- NUEVO CLIENTE + CLIENTES INACTIVOS ---
-with st.expander("➕ Añadir nuevo cliente"):
-    DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-    st.markdown("**Datos para la factura:**")
-    c1, c2 = st.columns(2)
-    with c1:
-        nuevo_nombre = st.text_input("Nombre (apodo)", placeholder="Ej: María", key="nuevo_cli_nombre")
-    with c2:
-        nuevo_nombre_completo = st.text_input("Nombre completo", placeholder="Ej: María García López", key="nuevo_cli_nombre_completo")
-    c3, c4, c5 = st.columns(3)
-    with c3:
-        nuevo_nif = st.text_input("NIF/DNI", placeholder="Ej: 12345678A", key="nuevo_cli_nif")
-    with c4:
-        nuevo_dir = st.text_input("Dirección", placeholder="Ej: Calle Mayor, 5", key="nuevo_cli_dir")
-    with c5:
-        nuevo_cp_ciudad = st.text_input("CP y ciudad", placeholder="Ej: 03560 El Campello", key="nuevo_cli_cp")
-    st.markdown("**Configuración:**")
-    c6, c7, c8 = st.columns(3)
-    with c6:
-        nueva_tarifa = st.number_input("Tarifa €/h", min_value=1.0, max_value=100.0,
-                                        value=14.0, step=0.5, key="nuevo_cli_tarifa")
-    with c7:
-        nuevas_horas = st.number_input("Horas/día", min_value=0.5, max_value=12.0,
-                                        value=4.0, step=0.5, key="nuevo_cli_horas")
-    with c8:
-        nuevos_dias = st.multiselect("Días de trabajo", DIAS_SEMANA, key="nuevo_cli_dias")
-    tipo_factura = st.radio(
-        "Tipo de cobro",
-        ["🧾 Factura legal (cuenta para Mod.130 e IRPF)", "💵 Bono en efectivo (no cuenta fiscalmente)"],
-        key="nuevo_cli_tipo", horizontal=True
-    )
-    es_factura = tipo_factura.startswith("🧾")
-    dias_idx = [DIAS_SEMANA.index(d) for d in nuevos_dias]
-
-    if st.button("💾 Guardar cliente", type="primary", key="btn_guardar_cliente"):
-        if nuevo_nombre and nuevos_dias:
-            guardar_cliente_extra(nuevo_nombre, nueva_tarifa, nuevas_horas, dias_idx, es_factura,
-                                  nuevo_nombre_completo, nuevo_nif, nuevo_dir, nuevo_cp_ciudad)
-            cargar_todos_datos.clear()
-            st.success(f"✅ {nuevo_nombre} añadido")
-            st.rerun()
-        else:
-            st.warning("Escribe el nombre y selecciona al menos un día")
+# --- NUEVO CLIENTE ---
+DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+with st.expander("➕ Añadir nuevo cliente", expanded=False):
+    with st.form("form_nuevo_cliente", clear_on_submit=True):
+        st.markdown("**Datos para la factura:**")
+        c1, c2 = st.columns(2)
+        with c1:
+            nuevo_nombre = st.text_input("Nombre (apodo)", placeholder="Ej: María")
+        with c2:
+            nuevo_nombre_completo = st.text_input("Nombre completo", placeholder="Ej: María García López")
+        c3, c4, c5 = st.columns(3)
+        with c3:
+            nuevo_nif = st.text_input("NIF/DNI", placeholder="Ej: 12345678A")
+        with c4:
+            nuevo_dir = st.text_input("Dirección", placeholder="Ej: Calle Mayor, 5")
+        with c5:
+            nuevo_cp_ciudad = st.text_input("CP y ciudad", placeholder="Ej: 03560 El Campello")
+        st.markdown("**Configuración:**")
+        c6, c7 = st.columns(2)
+        with c6:
+            nueva_tarifa = st.number_input("Tarifa €/h", min_value=1.0, max_value=100.0, value=14.0, step=0.5)
+        with c7:
+            nuevas_horas = st.number_input("Horas/día", min_value=0.5, max_value=12.0, value=4.0, step=0.5)
+        nuevos_dias = st.multiselect("Días de trabajo", DIAS_SEMANA)
+        tipo_factura = st.radio(
+            "Tipo de cobro",
+            ["🧾 Factura legal (cuenta para Mod.130 e IRPF)", "💵 Bono en efectivo (no cuenta fiscalmente)"],
+            horizontal=True
+        )
+        submitted = st.form_submit_button("💾 Guardar cliente", type="primary", use_container_width=True)
+        if submitted:
+            if nuevo_nombre and nuevos_dias:
+                es_factura = tipo_factura.startswith("🧾")
+                dias_idx = [DIAS_SEMANA.index(d) for d in nuevos_dias]
+                guardar_cliente_extra(nuevo_nombre, nueva_tarifa, nuevas_horas, dias_idx, es_factura,
+                                      nuevo_nombre_completo, nuevo_nif, nuevo_dir, nuevo_cp_ciudad)
+                cargar_todos_datos.clear()
+                st.success(f"✅ {nuevo_nombre} añadido")
+                st.rerun()
+            else:
+                st.warning("Escribe el nombre y selecciona al menos un día")
 
 # --- SERVICIOS ESPORÁDICOS ---
 key_esp_mes = f"servicios_esporadicos_{mi}_{anio}"
 servicios_esp = get_dato(key_esp_mes, [])
 
-with st.expander("⚡ Añadir servicio esporádico"):
+with st.expander("⚡ Añadir servicio esporádico", expanded=False):
     st.caption("Cada vez que hagas un trabajo puntual, añade una entrada. Pueden ser varias del mismo cliente en el mismo mes.")
-    st.markdown("**Datos para la factura:**")
-    c1, c2 = st.columns(2)
-    with c1:
-        esp_nombre = st.text_input("Nombre (apodo)", placeholder="Ej: Casa de Marta", key="esp_nombre")
-    with c2:
-        esp_nombre_completo = st.text_input("Nombre completo", placeholder="Ej: Marta Pérez López", key="esp_nombre_completo")
-    c3, c4, c5 = st.columns(3)
-    with c3:
-        esp_nif = st.text_input("NIF/DNI", placeholder="Ej: 12345678A", key="esp_nif")
-    with c4:
-        esp_dir = st.text_input("Dirección", placeholder="Ej: Calle Mayor, 5", key="esp_dir")
-    with c5:
-        esp_cp = st.text_input("CP y ciudad", placeholder="Ej: 03560 El Campello", key="esp_cp")
-    st.markdown("**Servicio:**")
-    c6, c7 = st.columns(2)
-    with c6:
-        esp_horas = st.number_input("Horas", min_value=0.5, max_value=24.0,
-                                     value=4.0, step=0.5, key="esp_horas")
-    with c7:
-        esp_tarifa = st.number_input("Tarifa €/h", min_value=1.0, max_value=100.0,
-                                      value=14.0, step=0.5, key="esp_tarifa")
-    esp_tipo = st.radio(
-        "Tipo de cobro",
-        ["🧾 Factura legal (cuenta para Mod.130 e IRPF)", "💵 Bono en efectivo (no cuenta fiscalmente)"],
-        key="esp_tipo", horizontal=True
-    )
-    esp_factura = esp_tipo.startswith("🧾")
-    esp_total = esp_horas * esp_tarifa
-    st.caption(f"Total del servicio: **{esp_total:.2f} €**")
-
-    if st.button("💾 Añadir servicio", key="btn_esp", type="primary"):
-        if esp_nombre:
-            servicios_esp.append({
-                "nombre": esp_nombre,
-                "nombre_completo": esp_nombre_completo,
-                "nif": esp_nif,
-                "dir": esp_dir,
-                "cp": esp_cp,
-                "horas": esp_horas,
-                "tarifa": esp_tarifa,
-                "importe": esp_total,
-                "factura": esp_factura
-            })
-            set_dato(key_esp_mes, servicios_esp)
-            cargar_todos_datos.clear()
-            st.success(f"✅ Servicio añadido: {esp_nombre} — {esp_total:.2f} €")
-            st.rerun()
-        else:
-            st.warning("Escribe el nombre del cliente")
+    with st.form("form_esp", clear_on_submit=True):
+        st.markdown("**Datos para la factura:**")
+        c1, c2 = st.columns(2)
+        with c1:
+            esp_nombre = st.text_input("Nombre (apodo)", placeholder="Ej: Konrad")
+        with c2:
+            esp_nombre_completo = st.text_input("Nombre completo", placeholder="Ej: Konrad Müller")
+        c3, c4, c5 = st.columns(3)
+        with c3:
+            esp_nif = st.text_input("NIF/NIE", placeholder="Ej: X1234567A")
+        with c4:
+            esp_dir = st.text_input("Dirección", placeholder="Ej: Calle Mayor, 5")
+        with c5:
+            esp_cp = st.text_input("CP y ciudad", placeholder="Ej: 03560 El Campello")
+        st.markdown("**Servicio:**")
+        c6, c7 = st.columns(2)
+        with c6:
+            esp_horas = st.number_input("Horas", min_value=0.5, max_value=24.0, value=4.0, step=0.5)
+        with c7:
+            esp_tarifa = st.number_input("Tarifa €/h", min_value=1.0, max_value=100.0, value=14.0, step=0.5)
+        esp_tipo = st.radio(
+            "Tipo de cobro",
+            ["🧾 Factura legal (cuenta para Mod.130 e IRPF)", "💵 Bono en efectivo (no cuenta fiscalmente)"],
+            horizontal=True
+        )
+        submitted_esp = st.form_submit_button("💾 Añadir servicio", type="primary", use_container_width=True)
+        if submitted_esp:
+            if esp_nombre:
+                esp_factura = esp_tipo.startswith("🧾")
+                esp_total = esp_horas * esp_tarifa
+                servicios_esp.append({
+                    "nombre": esp_nombre,
+                    "nombre_completo": esp_nombre_completo,
+                    "nif": esp_nif,
+                    "dir": esp_dir,
+                    "cp": esp_cp,
+                    "horas": esp_horas,
+                    "tarifa": esp_tarifa,
+                    "importe": esp_total,
+                    "factura": esp_factura
+                })
+                set_dato(key_esp_mes, servicios_esp)
+                cargar_todos_datos.clear()
+                st.success(f"✅ {esp_nombre} — {esp_total:.2f} €")
+                st.rerun()
+            else:
+                st.warning("Escribe el nombre del cliente")
+        with ec2:
+            if st.button("Cancelar", key="btn_cancelar_esp", use_container_width=True):
+                st.session_state["mostrar_esp"] = False
+                st.rerun()
 
 # Mostrar servicios esporádicos del mes
 if servicios_esp:
