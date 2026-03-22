@@ -1,7 +1,7 @@
 import streamlit as st
 
 def mostrar_calculadora():
-    # Ocultar barra negra "Gestionar la aplicación"
+    # Ocultar barra "Gestionar la aplicación"
     st.markdown("""
     <style>
     [data-testid="stToolbar"] { display: none !important; }
@@ -12,26 +12,26 @@ def mostrar_calculadora():
 
     #calc-fab {
         position: fixed;
-        bottom: 24px;
+        top: 14px;
         right: 18px;
         z-index: 99999;
-        width: 52px;
-        height: 52px;
+        width: 42px;
+        height: 42px;
         border-radius: 50%;
         background: #2ABFBF;
         color: white;
-        font-size: 22px;
+        font-size: 20px;
         border: none;
         cursor: pointer;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-        line-height: 52px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        line-height: 42px;
         text-align: center;
     }
     #calc-fab:hover { background: #22a8a8; }
 
     #calc-panel {
         position: fixed;
-        bottom: 86px;
+        top: 64px;
         right: 18px;
         z-index: 99998;
         width: 240px;
