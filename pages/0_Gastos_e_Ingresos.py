@@ -293,6 +293,65 @@ with st.expander("➕ Añadir nuevo cliente"):
         else:
             st.warning("Escribe el nombre y selecciona al menos un día")
 
+# --- SERVICIOS ESPORÁDICOS ---
+key_esp_mes = f"servicios_esporadicos_{mi}_{anio}"
+servicios_esp = get_dato(key_esp_mes, [])
+
+with st.expander("⚡ Añadir servicio esporádico"):
+    st.caption("Cada vez que hagas un trabajo puntual, añade una entrada. Pueden ser varias del mismo cliente en el mismo mes.")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        esp_nombre = st.text_input("Cliente", placeholder="Ej: Casa de Marta", key="esp_nombre")
+    with c2:
+        esp_horas = st.number_input("Horas", min_value=0.5, max_value=24.0,
+                                     value=4.0, step=0.5, key="esp_horas")
+    with c3:
+        esp_tarifa = st.number_input("Tarifa €/h", min_value=1.0, max_value=100.0,
+                                      value=14.0, step=0.5, key="esp_tarifa")
+    esp_tipo = st.radio(
+        "Tipo de cobro",
+        ["🧾 Factura legal (cuenta para Mod.130 e IRPF)", "💵 Bono en efectivo (no cuenta fiscalmente)"],
+        key="esp_tipo", horizontal=True
+    )
+    esp_factura = esp_tipo.startswith("🧾")
+    esp_total = esp_horas * esp_tarifa
+    st.caption(f"Total del servicio: **{esp_total:.2f} €**")
+
+    if st.button("💾 Añadir servicio", key="btn_esp", type="primary"):
+        if esp_nombre:
+            servicios_esp.append({
+                "nombre": esp_nombre,
+                "horas": esp_horas,
+                "tarifa": esp_tarifa,
+                "importe": esp_total,
+                "factura": esp_factura
+            })
+            set_dato(key_esp_mes, servicios_esp)
+            cargar_todos_datos.clear()
+            st.success(f"✅ Servicio añadido: {esp_nombre} — {esp_total:.2f} €")
+            st.rerun()
+        else:
+            st.warning("Escribe el nombre del cliente")
+
+# Mostrar servicios esporádicos del mes
+if servicios_esp:
+    st.markdown("*Servicios esporádicos este mes:*")
+    for idx, esp in enumerate(servicios_esp):
+        badge = "🧾" if esp.get("factura") else "💵"
+        c1, c2, c3 = st.columns([3.5, 1.5, 0.5])
+        with c1:
+            st.write(f"{badge} **{esp['nombre']}** · {esp['horas']}h · {esp['tarifa']} €/h")
+        with c2:
+            st.write(f"**{esp['importe']:.2f} €**")
+        with c3:
+            if st.button("🗑️", key=f"del_esp_{idx}_{mi}_{anio}"):
+                servicios_esp.pop(idx)
+                set_dato(key_esp_mes, servicios_esp)
+                cargar_todos_datos.clear()
+                st.rerun()
+
+esporadicos_total = sum(e["importe"] for e in servicios_esp)
+
 # Clientes inactivos — posibilidad de reactivar
 inactivos_dict = get_dato("clientes_inactivos", {})
 if inactivos_dict:
@@ -347,7 +406,7 @@ with c3:
             st.rerun()
 
 ingresos_extra_total = sum(v for _, v in st.session_state[key_ing_extra])
-total_ingresos = sum(ingresos_reales.values()) + ingresos_extra_total
+total_ingresos = sum(ingresos_reales.values()) + ingresos_extra_total + esporadicos_total
 st.metric("Total ingresos", f"{total_ingresos:.2f} EUR")
 
 st.divider()
