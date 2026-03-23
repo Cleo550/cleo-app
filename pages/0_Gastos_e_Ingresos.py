@@ -110,59 +110,11 @@ def set_dato(clave, valor):
         pass
 
 # --- DATOS CLIENTES ---
-CLIS_BASE = {
-    "Ania":     {"t": 13.0, "h": 5.0, "w": [0, 1], "v": False},
-    "Lola":     {"t": 14.0, "h": 4.0, "w": [2],    "v": True},
-    "Yordhana": {"t": 14.0, "h": 4.0, "w": [3],    "v": True},
+CLIS = {
+    "Ania":     {"t": 13.0, "h": 5.0, "w": [0, 1]},
+    "Lola":     {"t": 14.0, "h": 4.0, "w": [2]},
+    "Yordhana": {"t": 14.0, "h": 4.0, "w": [3]},
 }
-
-def cargar_clientes():
-    """Devuelve solo clientes activos (no inactivos a fecha de hoy)."""
-    from datetime import date
-    hoy = str(date.today())
-    inactivos = get_dato("clientes_inactivos", {})  # {nombre: fecha_baja}
-    extras = get_dato("clientes_extra", [])
-
-    # Clientes base activos
-    clis = {}
-    for k, v in CLIS_BASE.items():
-        if k not in inactivos:
-            clis[k] = v
-
-    # Clientes extra activos
-    for c in extras:
-        if c["nombre"] not in inactivos:
-            clis[c["nombre"]] = {
-                "t": c["tarifa"], "h": c["horas"],
-                "w": c["dias"],   "v": c.get("factura", False)
-            }
-    return clis
-
-def guardar_cliente_extra(nombre, tarifa, horas, dias, factura,
-                          nombre_completo="", nif="", direccion="", cp_ciudad=""):
-    extras = get_dato("clientes_extra", [])
-    extras = [c for c in extras if c["nombre"] != nombre]
-    extras.append({
-        "nombre": nombre, "tarifa": tarifa, "horas": horas,
-        "dias": dias, "factura": factura,
-        "nombre_completo": nombre_completo, "nif": nif,
-        "dir": direccion, "cp": cp_ciudad
-    })
-    set_dato("clientes_extra", extras)
-
-def dar_baja_cliente(nombre):
-    """Marca al cliente como inactivo desde hoy. Sus datos históricos se conservan."""
-    from datetime import date
-    inactivos = get_dato("clientes_inactivos", {})
-    inactivos[nombre] = str(date.today())
-    set_dato("clientes_inactivos", inactivos)
-
-def reactivar_cliente(nombre):
-    inactivos = get_dato("clientes_inactivos", {})
-    inactivos.pop(nombre, None)
-    set_dato("clientes_inactivos", inactivos)
-
-CLIS = cargar_clientes()
 
 MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
          "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
@@ -211,40 +163,10 @@ for cliente, datos in CLIS.items():
     num_dias_defecto = len(dias_cal)
     key_dias = f"dias_{cliente}_{mi}_{anio}"
 
+    # Cargar valor guardado en Supabase
     valor_guardado = int(get_dato(key_dias, num_dias_defecto))
 
-    tipo_badge = "🧾 Factura" if datos.get("v") else "💵 Bono"
-    color_badge = "#2ABFBF" if datos.get("v") else "#FF69B4"
-
-    # Cabecera cliente con badge y botón baja
-    c_h1, c_h2, c_h3 = st.columns([3.5, 1.5, 0.5])
-    with c_h1:
-        st.markdown(f"**{cliente}** · {datos['h']}h/día · {datos['t']} EUR/h")
-    with c_h2:
-        st.markdown(
-            f"<span style='background:{color_badge};color:white;border-radius:8px;"
-            f"padding:2px 8px;font-size:12px'>{tipo_badge}</span>",
-            unsafe_allow_html=True)
-    with c_h3:
-        if st.button("🗑️", key=f"btn_baja_{cliente}", help=f"Dar de baja a {cliente}"):
-            st.session_state[f"confirmar_baja_{cliente}"] = True
-
-    # Confirmación de baja
-    if st.session_state.get(f"confirmar_baja_{cliente}", False):
-        st.warning(f"¿Dar de baja a **{cliente}**? Solo desaparecerá del formulario a partir de hoy. Todos sus datos históricos se conservan.")
-        cc1, cc2 = st.columns(2)
-        with cc1:
-            if st.button("✅ Sí, dar de baja", key=f"baja_si_{cliente}", type="primary"):
-                dar_baja_cliente(cliente)
-                cargar_todos_datos.clear()
-                st.session_state.pop(f"confirmar_baja_{cliente}", None)
-                st.success(f"{cliente} dado de baja. Sus datos históricos están intactos.")
-                st.rerun()
-        with cc2:
-            if st.button("Cancelar", key=f"baja_no_{cliente}"):
-                st.session_state.pop(f"confirmar_baja_{cliente}", None)
-                st.rerun()
-
+    st.markdown(f"**{cliente}** · {datos['h']}h/dia · {datos['t']} EUR/h")
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
         num_dias = st.number_input(
@@ -266,169 +188,6 @@ for cliente, datos in CLIS.items():
         st.write(f"**{total_cliente:.2f} EUR**")
     dias_trabajados[cliente] = num_dias
     ingresos_reales[cliente] = total_cliente
-
-# Cargar servicios esporádicos del mes
-key_esp_mes = f"servicios_esporadicos_{mi}_{anio}"
-servicios_esp = get_dato(key_esp_mes, [])
-
-# Mostrar servicios esporádicos del mes (antes de los formularios)
-if servicios_esp:
-    st.markdown("*Servicios esporádicos este mes:*")
-    for idx, esp in enumerate(servicios_esp):
-        badge = "🧾" if esp.get("factura") else "💵"
-        c1, c2, c3 = st.columns([3.5, 1.5, 0.5])
-        with c1:
-            st.write(f"{badge} **{esp['nombre']}** · {esp['horas']}h · {esp['tarifa']} €/h")
-        with c2:
-            st.write(f"**{esp['importe']:.2f} €**")
-        with c3:
-            if st.button("🗑️", key=f"del_esp_{idx}_{mi}_{anio}"):
-                servicios_esp.pop(idx)
-                set_dato(key_esp_mes, servicios_esp)
-                cargar_todos_datos.clear()
-                st.rerun()
-
-esporadicos_total = sum(e["importe"] for e in servicios_esp)
-
-# --- NUEVO CLIENTE ---
-DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-with st.expander("➕ Añadir nuevo cliente", expanded=False):
-    with st.form("form_nuevo_cliente", clear_on_submit=True):
-        st.markdown("**Datos para la factura:**")
-        c1, c2 = st.columns(2)
-        with c1:
-            nuevo_nombre = st.text_input("Nombre (apodo)", placeholder="Ej: María")
-        with c2:
-            nuevo_nombre_completo = st.text_input("Nombre completo", placeholder="Ej: María García López")
-        c3, c4, c5 = st.columns(3)
-        with c3:
-            nuevo_nif = st.text_input("NIF/DNI", placeholder="Ej: 12345678A")
-        with c4:
-            nuevo_dir = st.text_input("Dirección", placeholder="Ej: Calle Mayor, 5")
-        with c5:
-            nuevo_cp_ciudad = st.text_input("CP y ciudad", placeholder="Ej: 03560 El Campello")
-        st.markdown("**Configuración:**")
-        c6, c7 = st.columns(2)
-        with c6:
-            nueva_tarifa = st.number_input("Tarifa €/h", min_value=1.0, max_value=100.0, value=14.0, step=0.5)
-        with c7:
-            nuevas_horas = st.number_input("Horas/día", min_value=0.5, max_value=12.0, value=4.0, step=0.5)
-        nuevos_dias = st.multiselect("Días de trabajo", DIAS_SEMANA)
-        tipo_factura = st.radio(
-            "Tipo de cobro",
-            ["🧾 Factura legal (cuenta para Mod.130 e IRPF)", "💵 Bono en efectivo (no cuenta fiscalmente)"],
-            horizontal=True
-        )
-        submitted = st.form_submit_button("💾 Guardar cliente", type="primary", use_container_width=True)
-        if submitted:
-            if nuevo_nombre and nuevos_dias:
-                es_factura = tipo_factura.startswith("🧾")
-                dias_idx = [DIAS_SEMANA.index(d) for d in nuevos_dias]
-                guardar_cliente_extra(nuevo_nombre, nueva_tarifa, nuevas_horas, dias_idx, es_factura,
-                                      nuevo_nombre_completo, nuevo_nif, nuevo_dir, nuevo_cp_ciudad)
-                cargar_todos_datos.clear()
-                st.success(f"✅ {nuevo_nombre} añadido")
-                st.rerun()
-            else:
-                st.warning("Escribe el nombre y selecciona al menos un día")
-
-# --- SERVICIOS ESPORÁDICOS ---
-with st.expander("⚡ Añadir servicio esporádico", expanded=False):
-    st.caption("Cada vez que hagas un trabajo puntual, añade una entrada. Pueden ser varias del mismo cliente en el mismo mes.")
-    with st.form("form_esp", clear_on_submit=True):
-        st.markdown("**Datos para la factura:**")
-        c1, c2 = st.columns(2)
-        with c1:
-            esp_nombre = st.text_input("Nombre (apodo)", placeholder="Ej: Konrad")
-        with c2:
-            esp_nombre_completo = st.text_input("Nombre completo", placeholder="Ej: Konrad Müller")
-        c3, c4, c5 = st.columns(3)
-        with c3:
-            esp_nif = st.text_input("NIF/NIE", placeholder="Ej: X1234567A")
-        with c4:
-            esp_dir = st.text_input("Dirección", placeholder="Ej: Calle Mayor, 5")
-        with c5:
-            esp_cp = st.text_input("CP y ciudad", placeholder="Ej: 03560 El Campello")
-        st.markdown("**Servicio:**")
-        c6, c7 = st.columns(2)
-        with c6:
-            esp_horas = st.number_input("Horas por día", min_value=0.5, max_value=24.0, value=4.0, step=0.5)
-        with c7:
-            esp_tarifa = st.number_input("Tarifa €/h", min_value=1.0, max_value=100.0, value=14.0, step=0.5)
-
-        st.markdown("**Días trabajados:**")
-        st.caption("Selecciona uno o varios días del mes en el calendario.")
-        # Selector de fechas múltiple nativo de Streamlit
-        import calendar as _cal
-        primer_dia_mes = datetime(int(anio), mi, 1).date()
-        ultimo_dia_mes = datetime(int(anio), mi, _cal.monthrange(int(anio), mi)[1]).date()
-        esp_fechas_sel = st.date_input(
-            "Días del servicio",
-            value=(primer_dia_mes, primer_dia_mes),
-            min_value=primer_dia_mes,
-            max_value=ultimo_dia_mes,
-            format="DD/MM/YYYY",
-            help="Selecciona el primer y último día si es un rango, o el mismo día dos veces si es un solo día"
-        )
-        # Convertir a lista de fechas dd/mm/aaaa
-        from datetime import timedelta
-        if isinstance(esp_fechas_sel, (list, tuple)) and len(esp_fechas_sel) == 2:
-            fecha_ini, fecha_fin = esp_fechas_sel[0], esp_fechas_sel[1]
-            esp_fechas_raw = []
-            d = fecha_ini
-            while d <= fecha_fin:
-                esp_fechas_raw.append(d.strftime("%d/%m/%Y"))
-                d += timedelta(days=1)
-        elif isinstance(esp_fechas_sel, (list, tuple)) and len(esp_fechas_sel) == 1:
-            esp_fechas_raw = [esp_fechas_sel[0].strftime("%d/%m/%Y")]
-        else:
-            esp_fechas_raw = [esp_fechas_sel.strftime("%d/%m/%Y")] if hasattr(esp_fechas_sel, 'strftime') else []
-        if esp_fechas_raw:
-            st.caption(f"Días seleccionados: {', '.join(esp_fechas_raw)}")
-
-        esp_tipo = st.radio(
-            "Tipo de cobro",
-            ["🧾 Factura legal (cuenta para Mod.130 e IRPF)", "💵 Bono en efectivo (no cuenta fiscalmente)"],
-            horizontal=True
-        )
-        submitted_esp = st.form_submit_button("💾 Añadir servicio", type="primary", use_container_width=True)
-        if submitted_esp:
-            if esp_nombre:
-                esp_factura = esp_tipo.startswith("🧾")
-                # Usar las fechas seleccionadas en el calendario
-                esp_fechas = esp_fechas_raw if esp_fechas_raw else [f"01/{mi:02d}/{int(anio)}"]
-                esp_total = len(esp_fechas) * esp_horas * esp_tarifa
-                servicios_esp.append({
-                    "nombre": esp_nombre,
-                    "nombre_completo": esp_nombre_completo,
-                    "nif": esp_nif,
-                    "dir": esp_dir,
-                    "cp": esp_cp,
-                    "horas": esp_horas,
-                    "tarifa": esp_tarifa,
-                    "importe": esp_total,
-                    "factura": esp_factura,
-                    "fechas": esp_fechas
-                })
-                set_dato(key_esp_mes, servicios_esp)
-                cargar_todos_datos.clear()
-                st.success(f"✅ {esp_nombre} — {esp_total:.2f} €")
-                st.rerun()
-            else:
-                st.warning("Escribe el nombre del cliente")
-# Clientes inactivos — posibilidad de reactivar
-inactivos_dict = get_dato("clientes_inactivos", {})
-if inactivos_dict:
-    with st.expander(f"👤 Clientes inactivos ({len(inactivos_dict)})"):
-        for nombre_inact, fecha_baja in inactivos_dict.items():
-            ci1, ci2 = st.columns([3, 1])
-            with ci1:
-                st.write(f"**{nombre_inact}** — baja desde {fecha_baja}")
-            with ci2:
-                if st.button("↩️ Reactivar", key=f"reactivar_{nombre_inact}"):
-                    reactivar_cliente(nombre_inact)
-                    cargar_todos_datos.clear()
-                    st.rerun()
 
 st.markdown("---")
 
@@ -470,7 +229,7 @@ with c3:
             st.rerun()
 
 ingresos_extra_total = sum(v for _, v in st.session_state[key_ing_extra])
-total_ingresos = sum(ingresos_reales.values()) + ingresos_extra_total + esporadicos_total
+total_ingresos = sum(ingresos_reales.values()) + ingresos_extra_total
 st.metric("Total ingresos", f"{total_ingresos:.2f} EUR")
 
 st.divider()
@@ -635,44 +394,6 @@ if st.session_state.get(f"show_nuevo_sobre_{mi}_{anio}", False):
             st.session_state[f"show_nuevo_sobre_{mi}_{anio}"] = False
             st.rerun()
 
-# Gastos puntuales Trade Republic (solo este mes)
-key_tr_puntual = f"tr_puntual_{mi}_{anio}"
-if key_tr_puntual not in st.session_state:
-    st.session_state[key_tr_puntual] = get_dato(key_tr_puntual, [])
-
-if st.session_state[key_tr_puntual]:
-    st.markdown("*Gastos puntuales TR este mes:*")
-    for idx, (nombre_tp, importe_tp) in enumerate(st.session_state[key_tr_puntual]):
-        c1, c2, c3 = st.columns([2, 1, 0.5])
-        with c1:
-            st.write(nombre_tp)
-        with c2:
-            st.write(f"{importe_tp:.2f} EUR")
-        with c3:
-            if st.button("X", key=f"del_tr_puntual_{idx}_{mi}_{anio}"):
-                st.session_state[key_tr_puntual].pop(idx)
-                set_dato(key_tr_puntual, st.session_state[key_tr_puntual])
-                st.rerun()
-        total_sobres += importe_tp
-
-c1, c2, c3 = st.columns([2, 1, 1])
-with c1:
-    tr_p_nombre = st.text_input("Gasto puntual TR", placeholder="Ej: Arreglo coche",
-                                 key=f"tr_p_nombre_{mi}_{anio}", label_visibility="collapsed")
-    st.caption("Gasto puntual este mes (TR)")
-with c2:
-    tr_p_importe = st.number_input("Importe TR puntual", min_value=0.0, max_value=5000.0,
-                                    value=0.0, step=0.5, key=f"tr_p_importe_{mi}_{anio}",
-                                    label_visibility="collapsed")
-    st.caption("Importe EUR")
-with c3:
-    st.write("")
-    if st.button("Añadir", key=f"btn_add_tr_puntual_{mi}_{anio}"):
-        if tr_p_nombre and tr_p_importe > 0:
-            st.session_state[key_tr_puntual].append((tr_p_nombre, tr_p_importe))
-            set_dato(key_tr_puntual, st.session_state[key_tr_puntual])
-            st.rerun()
-
 st.markdown("---")
 st.markdown("**Mod. 130 - Pago trimestral**")
 st.caption("Se paga en Abril, Julio, Octubre y Enero. Aparta 1/3 cada mes.")
@@ -739,6 +460,40 @@ for i, (nombre, importe) in enumerate(AHORRO_INVERSION.items()):
     st.caption(f"{val:.2f} EUR/mes")
 total_sobres += total_ahorro
 st.info(f"Total ahorro inversión: {total_ahorro:.2f} EUR/mes")
+
+# ── Puntual Trade Republic (solo este mes) ──
+key_tr_puntual = f"tr_puntual_{mi}_{anio}"
+if key_tr_puntual not in st.session_state:
+    st.session_state[key_tr_puntual] = get_dato(key_tr_puntual, [])
+if st.session_state[key_tr_puntual]:
+    st.markdown("*Gastos puntuales TR este mes:*")
+    for idx, (nom_tp, imp_tp) in enumerate(st.session_state[key_tr_puntual]):
+        c1, c2, c3 = st.columns([2, 1, 0.5])
+        with c1: st.write(nom_tp)
+        with c2: st.write(f"{imp_tp:.2f} EUR")
+        with c3:
+            if st.button("X", key=f"del_tr_p_{idx}_{mi}_{anio}"):
+                st.session_state[key_tr_puntual].pop(idx)
+                set_dato(key_tr_puntual, st.session_state[key_tr_puntual])
+                st.rerun()
+        total_sobres += imp_tp
+c1, c2, c3 = st.columns([2, 1, 1])
+with c1:
+    tr_p_nom = st.text_input("Gasto puntual TR", placeholder="Ej: Arreglo coche",
+                              key=f"tr_p_nom_{mi}_{anio}", label_visibility="collapsed")
+    st.caption("💡 Puntual TR (solo este mes)")
+with c2:
+    tr_p_imp = st.number_input("Imp TR puntual", min_value=0.0, max_value=5000.0,
+                                value=0.0, step=0.5, key=f"tr_p_imp_{mi}_{anio}",
+                                label_visibility="collapsed")
+    st.caption("Importe EUR")
+with c3:
+    st.write("")
+    if st.button("Añadir", key=f"btn_tr_p_{mi}_{anio}"):
+        if tr_p_nom and tr_p_imp > 0:
+            st.session_state[key_tr_puntual].append((tr_p_nom, tr_p_imp))
+            set_dato(key_tr_puntual, st.session_state[key_tr_puntual])
+            st.rerun()
 
 st.markdown("---")
 st.write(f"**Total Trade Republic: {total_sobres:.2f} EUR**")
@@ -869,59 +624,12 @@ with tab_bbva:
             total_fijos += val
             gastos_bbva_reales[gasto] = val
 
-    # ── Gastos recurrentes BBVA (persisten todos los meses) ──
-    # Usan clave SIN mes/año → get_valor_historico los recupera hacia atrás
-    key_bbva_recur = "bbva_recurrentes"
-    if key_bbva_recur not in st.session_state:
-        st.session_state[key_bbva_recur] = get_dato(key_bbva_recur, [])
-
-    if st.session_state[key_bbva_recur]:
-        st.markdown("*Gastos recurrentes:*")
-        for idx, (nombre_b, importe_b) in enumerate(st.session_state[key_bbva_recur]):
-            val_rec, clave_rec = get_valor_historico(f"bbva_rec_{nombre_b.replace(' ','_')}", mi, anio, importe_b)
-            c1, c2, c3 = st.columns([2, 1, 0.5])
-            with c1:
-                st.write(nombre_b)
-            with c2:
-                val_r = st.number_input(f"rec {nombre_b}", min_value=0.0, max_value=5000.0,
-                                         value=val_rec, step=0.5, label_visibility="collapsed",
-                                         key=f"bbva_rec_{idx}_{mi}_{anio}")
-                if val_r != val_rec:
-                    set_dato(clave_rec, val_r)
-                total_fijos += val_r
-            with c3:
-                if st.button("🗑️", key=f"del_bbva_rec_{idx}_{mi}_{anio}"):
-                    st.session_state[key_bbva_recur].pop(idx)
-                    set_dato(key_bbva_recur, st.session_state[key_bbva_recur])
-                    st.rerun()
-
-    c1, c2, c3 = st.columns([2, 1, 1])
-    with c1:
-        bbva_rec_nombre = st.text_input("Gasto recurrente BBVA", placeholder="Ej: Netflix",
-                                         key=f"bbva_rec_nombre_{mi}_{anio}", label_visibility="collapsed")
-        st.caption("➕ Añadir recurrente (todos los meses)")
-    with c2:
-        bbva_rec_imp = st.number_input("Importe rec BBVA", min_value=0.0, max_value=2000.0,
-                                        value=0.0, step=0.5, key=f"bbva_rec_imp_{mi}_{anio}",
-                                        label_visibility="collapsed")
-        st.caption("Importe EUR")
-    with c3:
-        st.write("")
-        if st.button("Añadir recurrente", key=f"btn_bbva_rec_{mi}_{anio}"):
-            if bbva_rec_nombre and bbva_rec_imp > 0:
-                st.session_state[key_bbva_recur].append((bbva_rec_nombre, bbva_rec_imp))
-                set_dato(key_bbva_recur, st.session_state[key_bbva_recur])
-                set_dato(f"bbva_rec_{bbva_rec_nombre.replace(' ','_')}_{mi}_{anio}", bbva_rec_imp)
-                st.rerun()
-
-    st.markdown("---")
-    # ── Gastos puntuales BBVA (solo este mes) ──
     key_bbva_extra = f"bbva_extra_{mi}_{anio}"
     if key_bbva_extra not in st.session_state:
         st.session_state[key_bbva_extra] = get_dato(key_bbva_extra, [])
 
     if st.session_state[key_bbva_extra]:
-        st.markdown("*Gastos puntuales este mes:*")
+        st.markdown("*Gastos añadidos:*")
         for idx, (nombre_b, importe_b) in enumerate(st.session_state[key_bbva_extra]):
             c1, c2, c3 = st.columns([2, 1, 0.5])
             with c1:
@@ -935,9 +643,54 @@ with tab_bbva:
                     st.rerun()
             total_fijos += importe_b
 
+    st.markdown("---")
+    # ── Recurrente BBVA (persiste todos los meses) ──
+    key_bbva_rec = "bbva_recurrentes"
+    if key_bbva_rec not in st.session_state:
+        st.session_state[key_bbva_rec] = get_dato(key_bbva_rec, [])
+    if st.session_state[key_bbva_rec]:
+        for idx, (nom_r, imp_r) in enumerate(st.session_state[key_bbva_rec]):
+            val_r, clave_r = get_valor_historico(f"bbva_rec_{nom_r.replace(' ','_')}", mi, anio, imp_r)
+            c1, c2, c3 = st.columns([2, 1, 0.5])
+            with c1: st.write(f"🔁 {nom_r}")
+            with c2:
+                v = st.number_input(f"rec {nom_r}", min_value=0.0, max_value=5000.0,
+                                    value=val_r, step=0.5, label_visibility="collapsed",
+                                    key=f"bbva_rec_{idx}_{mi}_{anio}")
+                if v != val_r: set_dato(clave_r, v)
+                total_fijos += v
+                gastos_bbva_reales[nom_r] = v
+            with c3:
+                if st.button("🗑️", key=f"del_bbva_rec_{idx}_{mi}_{anio}"):
+                    st.session_state[key_bbva_rec].pop(idx)
+                    set_dato(key_bbva_rec, st.session_state[key_bbva_rec])
+                    st.rerun()
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
-        bbva_nombre = st.text_input("Gasto puntual BBVA", placeholder="Ej: Recibo luz",
+        bbva_rec_nom = st.text_input("Recurrente BBVA", placeholder="Ej: Netflix",
+                                      key=f"bbva_rec_nom_{mi}_{anio}", label_visibility="collapsed")
+        st.caption("➕ Recurrente (todos los meses)")
+    with c2:
+        bbva_rec_imp = st.number_input("Imp rec BBVA", min_value=0.0, max_value=2000.0,
+                                        value=0.0, step=0.5, key=f"bbva_rec_imp_{mi}_{anio}",
+                                        label_visibility="collapsed")
+        st.caption("Importe EUR")
+    with c3:
+        st.write("")
+        if st.button("Añadir recurrente", key=f"btn_bbva_rec_{mi}_{anio}"):
+            if bbva_rec_nom and bbva_rec_imp > 0:
+                lista_r = get_dato(key_bbva_rec, [])
+                lista_r = [x for x in lista_r if x[0] != bbva_rec_nom]
+                lista_r.append((bbva_rec_nom, bbva_rec_imp))
+                set_dato(key_bbva_rec, lista_r)
+                st.session_state[key_bbva_rec] = lista_r
+                set_dato(f"bbva_rec_{bbva_rec_nom.replace(' ','_')}_{mi}_{anio}", bbva_rec_imp)
+                st.rerun()
+    st.markdown("---")
+    # ── Puntual BBVA (solo este mes) ──
+    c1, c2, c3 = st.columns([2, 1, 1])
+    with c1:
+        bbva_nombre = st.text_input("Nombre gasto BBVA", placeholder="Ej: Recibo luz",
                                      key=f"bbva_nombre_{mi}_{anio}", label_visibility="collapsed")
         st.caption("💡 Puntual (solo este mes)")
     with c2:
@@ -947,7 +700,7 @@ with tab_bbva:
         st.caption("Importe EUR")
     with c3:
         st.write("")
-        if st.button("Añadir puntual", key=f"btn_add_bbva_{mi}_{anio}"):
+        if st.button("Añadir puntual BBVA", key=f"btn_add_bbva_{mi}_{anio}"):
             if bbva_nombre and bbva_importe > 0:
                 st.session_state[key_bbva_extra].append((bbva_nombre, bbva_importe))
                 set_dato(key_bbva_extra, st.session_state[key_bbva_extra])
@@ -983,58 +736,12 @@ with tab_efectivo:
                 set_dato(clave_ef, val)
             total_extras += val
 
-    # ── Gastos recurrentes Efectivo (persisten todos los meses) ──
-    key_ef_recur = "efectivo_recurrentes"
-    if key_ef_recur not in st.session_state:
-        st.session_state[key_ef_recur] = get_dato(key_ef_recur, [])
-
-    if st.session_state[key_ef_recur]:
-        st.markdown("*Gastos recurrentes:*")
-        for idx, (nombre_er, importe_er) in enumerate(st.session_state[key_ef_recur]):
-            val_rec_ef, clave_rec_ef = get_valor_historico(f"ef_rec_{nombre_er.replace(' ','_')}", mi, anio, importe_er)
-            c1, c2, c3 = st.columns([2, 1, 0.5])
-            with c1:
-                st.write(nombre_er)
-            with c2:
-                val_re = st.number_input(f"rec ef {nombre_er}", min_value=0.0, max_value=5000.0,
-                                          value=val_rec_ef, step=0.5, label_visibility="collapsed",
-                                          key=f"ef_rec_{idx}_{mi}_{anio}")
-                if val_re != val_rec_ef:
-                    set_dato(clave_rec_ef, val_re)
-                total_extras += val_re
-            with c3:
-                if st.button("🗑️", key=f"del_ef_rec_{idx}_{mi}_{anio}"):
-                    st.session_state[key_ef_recur].pop(idx)
-                    set_dato(key_ef_recur, st.session_state[key_ef_recur])
-                    st.rerun()
-
-    c1, c2, c3 = st.columns([2, 1, 1])
-    with c1:
-        ef_rec_nombre = st.text_input("Gasto recurrente Efectivo", placeholder="Ej: Peluquería",
-                                       key=f"ef_rec_nombre_{mi}_{anio}", label_visibility="collapsed")
-        st.caption("➕ Añadir recurrente (todos los meses)")
-    with c2:
-        ef_rec_imp = st.number_input("Importe rec Ef", min_value=0.0, max_value=2000.0,
-                                      value=0.0, step=0.5, key=f"ef_rec_imp_{mi}_{anio}",
-                                      label_visibility="collapsed")
-        st.caption("Importe EUR")
-    with c3:
-        st.write("")
-        if st.button("Añadir recurrente", key=f"btn_ef_rec_{mi}_{anio}"):
-            if ef_rec_nombre and ef_rec_imp > 0:
-                st.session_state[key_ef_recur].append((ef_rec_nombre, ef_rec_imp))
-                set_dato(key_ef_recur, st.session_state[key_ef_recur])
-                set_dato(f"ef_rec_{ef_rec_nombre.replace(' ','_')}_{mi}_{anio}", ef_rec_imp)
-                st.rerun()
-
-    st.markdown("---")
-    # ── Gastos puntuales Efectivo (solo este mes) ──
     key_ge_extra = f"gastos_extra_{mi}_{anio}"
     if key_ge_extra not in st.session_state:
         st.session_state[key_ge_extra] = get_dato(key_ge_extra, [])
 
     if st.session_state[key_ge_extra]:
-        st.markdown("*Gastos puntuales este mes:*")
+        st.markdown("*Gastos añadidos:*")
         for idx, (nombre_g, importe_g) in enumerate(st.session_state[key_ge_extra]):
             c1, c2, c3 = st.columns([2, 1, 0.5])
             with c1:
@@ -1048,9 +755,53 @@ with tab_efectivo:
                     st.rerun()
             total_extras += importe_g
 
+    st.markdown("---")
+    # ── Recurrente Efectivo (persiste todos los meses) ──
+    key_ef_rec = "efectivo_recurrentes"
+    if key_ef_rec not in st.session_state:
+        st.session_state[key_ef_rec] = get_dato(key_ef_rec, [])
+    if st.session_state[key_ef_rec]:
+        for idx, (nom_r, imp_r) in enumerate(st.session_state[key_ef_rec]):
+            val_r, clave_r = get_valor_historico(f"ef_rec_{nom_r.replace(' ','_')}", mi, anio, imp_r)
+            c1, c2, c3 = st.columns([2, 1, 0.5])
+            with c1: st.write(f"🔁 {nom_r}")
+            with c2:
+                v = st.number_input(f"rec ef {nom_r}", min_value=0.0, max_value=5000.0,
+                                    value=val_r, step=0.5, label_visibility="collapsed",
+                                    key=f"ef_rec_{idx}_{mi}_{anio}")
+                if v != val_r: set_dato(clave_r, v)
+                total_extras += v
+            with c3:
+                if st.button("🗑️", key=f"del_ef_rec_{idx}_{mi}_{anio}"):
+                    st.session_state[key_ef_rec].pop(idx)
+                    set_dato(key_ef_rec, st.session_state[key_ef_rec])
+                    st.rerun()
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
-        extra_nombre = st.text_input("Gasto puntual Efectivo", placeholder="Ej: Farmacia",
+        ef_rec_nom = st.text_input("Recurrente Efectivo", placeholder="Ej: Peluquería",
+                                    key=f"ef_rec_nom_{mi}_{anio}", label_visibility="collapsed")
+        st.caption("➕ Recurrente (todos los meses)")
+    with c2:
+        ef_rec_imp = st.number_input("Imp rec Ef", min_value=0.0, max_value=2000.0,
+                                      value=0.0, step=0.5, key=f"ef_rec_imp_{mi}_{anio}",
+                                      label_visibility="collapsed")
+        st.caption("Importe EUR")
+    with c3:
+        st.write("")
+        if st.button("Añadir recurrente", key=f"btn_ef_rec_{mi}_{anio}"):
+            if ef_rec_nom and ef_rec_imp > 0:
+                lista_r = get_dato(key_ef_rec, [])
+                lista_r = [x for x in lista_r if x[0] != ef_rec_nom]
+                lista_r.append((ef_rec_nom, ef_rec_imp))
+                set_dato(key_ef_rec, lista_r)
+                st.session_state[key_ef_rec] = lista_r
+                set_dato(f"ef_rec_{ef_rec_nom.replace(' ','_')}_{mi}_{anio}", ef_rec_imp)
+                st.rerun()
+    st.markdown("---")
+    # ── Puntual Efectivo (solo este mes) ──
+    c1, c2, c3 = st.columns([2, 1, 1])
+    with c1:
+        extra_nombre = st.text_input("Nombre del gasto", placeholder="Ej: Farmacia",
                                       key=f"ge_nombre_{mi}_{anio}", label_visibility="collapsed")
         st.caption("💡 Puntual (solo este mes)")
     with c2:
@@ -1060,7 +811,7 @@ with tab_efectivo:
         st.caption("Importe EUR")
     with c3:
         st.write("")
-        if st.button("Añadir", key=f"btn_add_{mi}_{anio}"):
+        if st.button("Añadir puntual", key=f"btn_add_{mi}_{anio}"):
             if extra_nombre and extra_importe > 0:
                 st.session_state[key_ge_extra].append((extra_nombre, extra_importe))
                 set_dato(key_ge_extra, st.session_state[key_ge_extra])
