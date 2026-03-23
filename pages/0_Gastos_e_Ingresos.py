@@ -635,6 +635,44 @@ if st.session_state.get(f"show_nuevo_sobre_{mi}_{anio}", False):
             st.session_state[f"show_nuevo_sobre_{mi}_{anio}"] = False
             st.rerun()
 
+# Gastos puntuales Trade Republic (solo este mes)
+key_tr_puntual = f"tr_puntual_{mi}_{anio}"
+if key_tr_puntual not in st.session_state:
+    st.session_state[key_tr_puntual] = get_dato(key_tr_puntual, [])
+
+if st.session_state[key_tr_puntual]:
+    st.markdown("*Gastos puntuales TR este mes:*")
+    for idx, (nombre_tp, importe_tp) in enumerate(st.session_state[key_tr_puntual]):
+        c1, c2, c3 = st.columns([2, 1, 0.5])
+        with c1:
+            st.write(nombre_tp)
+        with c2:
+            st.write(f"{importe_tp:.2f} EUR")
+        with c3:
+            if st.button("X", key=f"del_tr_puntual_{idx}_{mi}_{anio}"):
+                st.session_state[key_tr_puntual].pop(idx)
+                set_dato(key_tr_puntual, st.session_state[key_tr_puntual])
+                st.rerun()
+        total_sobres += importe_tp
+
+c1, c2, c3 = st.columns([2, 1, 1])
+with c1:
+    tr_p_nombre = st.text_input("Gasto puntual TR", placeholder="Ej: Arreglo coche",
+                                 key=f"tr_p_nombre_{mi}_{anio}", label_visibility="collapsed")
+    st.caption("Gasto puntual este mes (TR)")
+with c2:
+    tr_p_importe = st.number_input("Importe TR puntual", min_value=0.0, max_value=5000.0,
+                                    value=0.0, step=0.5, key=f"tr_p_importe_{mi}_{anio}",
+                                    label_visibility="collapsed")
+    st.caption("Importe EUR")
+with c3:
+    st.write("")
+    if st.button("Añadir", key=f"btn_add_tr_puntual_{mi}_{anio}"):
+        if tr_p_nombre and tr_p_importe > 0:
+            st.session_state[key_tr_puntual].append((tr_p_nombre, tr_p_importe))
+            set_dato(key_tr_puntual, st.session_state[key_tr_puntual])
+            st.rerun()
+
 st.markdown("---")
 st.markdown("**Mod. 130 - Pago trimestral**")
 st.caption("Se paga en Abril, Julio, Octubre y Enero. Aparta 1/3 cada mes.")
@@ -851,6 +889,7 @@ with tab_bbva:
             total_fijos += importe_b
 
     st.markdown("---")
+    st.caption("💡 Gasto puntual solo para este mes")
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
         bbva_nombre = st.text_input("Nombre gasto BBVA", placeholder="Ej: Recibo luz",
@@ -919,6 +958,7 @@ with tab_efectivo:
             total_extras += importe_g
 
     st.markdown("---")
+    st.caption("💡 Gasto puntual solo para este mes")
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
         extra_nombre = st.text_input("Nombre del gasto", placeholder="Ej: Farmacia",
