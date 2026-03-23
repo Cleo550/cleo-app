@@ -869,12 +869,59 @@ with tab_bbva:
             total_fijos += val
             gastos_bbva_reales[gasto] = val
 
+    # ── Gastos recurrentes BBVA (persisten todos los meses) ──
+    # Usan clave SIN mes/año → get_valor_historico los recupera hacia atrás
+    key_bbva_recur = "bbva_recurrentes"
+    if key_bbva_recur not in st.session_state:
+        st.session_state[key_bbva_recur] = get_dato(key_bbva_recur, [])
+
+    if st.session_state[key_bbva_recur]:
+        st.markdown("*Gastos recurrentes:*")
+        for idx, (nombre_b, importe_b) in enumerate(st.session_state[key_bbva_recur]):
+            val_rec, clave_rec = get_valor_historico(f"bbva_rec_{nombre_b.replace(' ','_')}", mi, anio, importe_b)
+            c1, c2, c3 = st.columns([2, 1, 0.5])
+            with c1:
+                st.write(nombre_b)
+            with c2:
+                val_r = st.number_input(f"rec {nombre_b}", min_value=0.0, max_value=5000.0,
+                                         value=val_rec, step=0.5, label_visibility="collapsed",
+                                         key=f"bbva_rec_{idx}_{mi}_{anio}")
+                if val_r != val_rec:
+                    set_dato(clave_rec, val_r)
+                total_fijos += val_r
+            with c3:
+                if st.button("🗑️", key=f"del_bbva_rec_{idx}_{mi}_{anio}"):
+                    st.session_state[key_bbva_recur].pop(idx)
+                    set_dato(key_bbva_recur, st.session_state[key_bbva_recur])
+                    st.rerun()
+
+    c1, c2, c3 = st.columns([2, 1, 1])
+    with c1:
+        bbva_rec_nombre = st.text_input("Gasto recurrente BBVA", placeholder="Ej: Netflix",
+                                         key=f"bbva_rec_nombre_{mi}_{anio}", label_visibility="collapsed")
+        st.caption("➕ Añadir recurrente (todos los meses)")
+    with c2:
+        bbva_rec_imp = st.number_input("Importe rec BBVA", min_value=0.0, max_value=2000.0,
+                                        value=0.0, step=0.5, key=f"bbva_rec_imp_{mi}_{anio}",
+                                        label_visibility="collapsed")
+        st.caption("Importe EUR")
+    with c3:
+        st.write("")
+        if st.button("Añadir recurrente", key=f"btn_bbva_rec_{mi}_{anio}"):
+            if bbva_rec_nombre and bbva_rec_imp > 0:
+                st.session_state[key_bbva_recur].append((bbva_rec_nombre, bbva_rec_imp))
+                set_dato(key_bbva_recur, st.session_state[key_bbva_recur])
+                set_dato(f"bbva_rec_{bbva_rec_nombre.replace(' ','_')}_{mi}_{anio}", bbva_rec_imp)
+                st.rerun()
+
+    st.markdown("---")
+    # ── Gastos puntuales BBVA (solo este mes) ──
     key_bbva_extra = f"bbva_extra_{mi}_{anio}"
     if key_bbva_extra not in st.session_state:
         st.session_state[key_bbva_extra] = get_dato(key_bbva_extra, [])
 
     if st.session_state[key_bbva_extra]:
-        st.markdown("*Gastos añadidos:*")
+        st.markdown("*Gastos puntuales este mes:*")
         for idx, (nombre_b, importe_b) in enumerate(st.session_state[key_bbva_extra]):
             c1, c2, c3 = st.columns([2, 1, 0.5])
             with c1:
@@ -888,13 +935,11 @@ with tab_bbva:
                     st.rerun()
             total_fijos += importe_b
 
-    st.markdown("---")
-    st.caption("💡 Gasto puntual solo para este mes")
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
-        bbva_nombre = st.text_input("Nombre gasto BBVA", placeholder="Ej: Recibo luz",
+        bbva_nombre = st.text_input("Gasto puntual BBVA", placeholder="Ej: Recibo luz",
                                      key=f"bbva_nombre_{mi}_{anio}", label_visibility="collapsed")
-        st.caption("Nombre del gasto")
+        st.caption("💡 Puntual (solo este mes)")
     with c2:
         bbva_importe = st.number_input("Importe BBVA EUR", min_value=0.0, max_value=2000.0,
                                         value=0.0, step=0.5, key=f"bbva_importe_{mi}_{anio}",
@@ -902,7 +947,7 @@ with tab_bbva:
         st.caption("Importe EUR")
     with c3:
         st.write("")
-        if st.button("Añadir gasto BBVA", key=f"btn_add_bbva_{mi}_{anio}"):
+        if st.button("Añadir puntual", key=f"btn_add_bbva_{mi}_{anio}"):
             if bbva_nombre and bbva_importe > 0:
                 st.session_state[key_bbva_extra].append((bbva_nombre, bbva_importe))
                 set_dato(key_bbva_extra, st.session_state[key_bbva_extra])
@@ -938,12 +983,58 @@ with tab_efectivo:
                 set_dato(clave_ef, val)
             total_extras += val
 
+    # ── Gastos recurrentes Efectivo (persisten todos los meses) ──
+    key_ef_recur = "efectivo_recurrentes"
+    if key_ef_recur not in st.session_state:
+        st.session_state[key_ef_recur] = get_dato(key_ef_recur, [])
+
+    if st.session_state[key_ef_recur]:
+        st.markdown("*Gastos recurrentes:*")
+        for idx, (nombre_er, importe_er) in enumerate(st.session_state[key_ef_recur]):
+            val_rec_ef, clave_rec_ef = get_valor_historico(f"ef_rec_{nombre_er.replace(' ','_')}", mi, anio, importe_er)
+            c1, c2, c3 = st.columns([2, 1, 0.5])
+            with c1:
+                st.write(nombre_er)
+            with c2:
+                val_re = st.number_input(f"rec ef {nombre_er}", min_value=0.0, max_value=5000.0,
+                                          value=val_rec_ef, step=0.5, label_visibility="collapsed",
+                                          key=f"ef_rec_{idx}_{mi}_{anio}")
+                if val_re != val_rec_ef:
+                    set_dato(clave_rec_ef, val_re)
+                total_extras += val_re
+            with c3:
+                if st.button("🗑️", key=f"del_ef_rec_{idx}_{mi}_{anio}"):
+                    st.session_state[key_ef_recur].pop(idx)
+                    set_dato(key_ef_recur, st.session_state[key_ef_recur])
+                    st.rerun()
+
+    c1, c2, c3 = st.columns([2, 1, 1])
+    with c1:
+        ef_rec_nombre = st.text_input("Gasto recurrente Efectivo", placeholder="Ej: Peluquería",
+                                       key=f"ef_rec_nombre_{mi}_{anio}", label_visibility="collapsed")
+        st.caption("➕ Añadir recurrente (todos los meses)")
+    with c2:
+        ef_rec_imp = st.number_input("Importe rec Ef", min_value=0.0, max_value=2000.0,
+                                      value=0.0, step=0.5, key=f"ef_rec_imp_{mi}_{anio}",
+                                      label_visibility="collapsed")
+        st.caption("Importe EUR")
+    with c3:
+        st.write("")
+        if st.button("Añadir recurrente", key=f"btn_ef_rec_{mi}_{anio}"):
+            if ef_rec_nombre and ef_rec_imp > 0:
+                st.session_state[key_ef_recur].append((ef_rec_nombre, ef_rec_imp))
+                set_dato(key_ef_recur, st.session_state[key_ef_recur])
+                set_dato(f"ef_rec_{ef_rec_nombre.replace(' ','_')}_{mi}_{anio}", ef_rec_imp)
+                st.rerun()
+
+    st.markdown("---")
+    # ── Gastos puntuales Efectivo (solo este mes) ──
     key_ge_extra = f"gastos_extra_{mi}_{anio}"
     if key_ge_extra not in st.session_state:
         st.session_state[key_ge_extra] = get_dato(key_ge_extra, [])
 
     if st.session_state[key_ge_extra]:
-        st.markdown("*Gastos añadidos:*")
+        st.markdown("*Gastos puntuales este mes:*")
         for idx, (nombre_g, importe_g) in enumerate(st.session_state[key_ge_extra]):
             c1, c2, c3 = st.columns([2, 1, 0.5])
             with c1:
@@ -957,13 +1048,11 @@ with tab_efectivo:
                     st.rerun()
             total_extras += importe_g
 
-    st.markdown("---")
-    st.caption("💡 Gasto puntual solo para este mes")
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
-        extra_nombre = st.text_input("Nombre del gasto", placeholder="Ej: Farmacia",
+        extra_nombre = st.text_input("Gasto puntual Efectivo", placeholder="Ej: Farmacia",
                                       key=f"ge_nombre_{mi}_{anio}", label_visibility="collapsed")
-        st.caption("Nombre del gasto")
+        st.caption("💡 Puntual (solo este mes)")
     with c2:
         extra_importe = st.number_input("Importe EUR", min_value=0.0, max_value=2000.0,
                                          value=0.0, step=1.0, key=f"ge_libre_{mi}_{anio}",
