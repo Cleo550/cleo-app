@@ -339,12 +339,12 @@ if st.session_state[key_tr_extra]:
             st.write(f"{importe_t:.2f} EUR/mes")
         with c3:
             if st.button("🗑️", key=f"del_tr_{idx}_{mi}_{anio}"):
-                # Borrar de este mes y de todos los meses futuros
+                _nom_borrar = nombre_t
                 m_b, a_b = mi, int(anio)
                 for _ in range(25):
                     k_b = f"tr_extra_{m_b}_{a_b}"
                     lista_b = get_dato(k_b, [])
-                    lista_b = [x for x in lista_b if (x[0] if len(x) >= 1 else "") != nombre_t]
+                    lista_b = [x for x in lista_b if (x[0] if len(x) >= 1 else "") != _nom_borrar]
                     set_dato(k_b, lista_b)
                     if k_b == key_tr_extra:
                         st.session_state[key_tr_extra] = lista_b
@@ -687,20 +687,18 @@ with tab_bbva:
                 gastos_bbva_reales[nom_r] = v
             with c3:
                 if st.button("🗑️", key=f"del_bbva_rec_{idx}_{mi}_{anio}"):
-                    # Guardar el importe del mes actual (conservar histórico)
+                    # Marcar fecha de baja — no borrar histórico
+                    # Guardar el importe actual del mes para conservarlo
                     set_dato(f"bbva_rec_{nom_r.replace(' ','_')}_{mi}_{anio}", v)
-                    # Quitar de la lista global de recurrentes
-                    lista_rec = get_dato(key_bbva_rec, [])
-                    lista_rec = [x for x in lista_rec if x[0] != nom_r]
-                    set_dato(key_bbva_rec, lista_rec)
-                    st.session_state[key_bbva_rec] = lista_rec
-                    # Poner 0 en los meses SIGUIENTES (a partir del mes siguiente)
+                    # Guardar baja: importe 0 desde el mes siguiente
                     m_sig, a_sig = (mi % 12) + 1, int(anio) + (1 if mi == 12 else 0)
-                    for _ in range(24):
-                        set_dato(f"bbva_rec_{nom_r.replace(' ','_')}_{m_sig}_{a_sig}", 0.0)
+                    for fut in range(24):
+                        k_fut = f"bbva_rec_{nom_r.replace(' ','_')}_{m_sig}_{a_sig}"
+                        set_dato(k_fut, 0.0)
                         m_sig = (m_sig % 12) + 1
                         if m_sig == 1: a_sig += 1
-                    cargar_todos_datos.clear()
+                    st.session_state[key_bbva_rec].pop(idx)
+                    set_dato(key_bbva_rec, st.session_state[key_bbva_rec])
                     st.rerun()
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
@@ -794,34 +792,35 @@ with tab_efectivo:
 
     st.markdown("---")
     # ── Recurrente Efectivo (persiste todos los meses) ──
-    key_ef_rec = "efectivo_recurrentes"
-    if key_ef_rec not in st.session_state:
-        st.session_state[key_ef_rec] = get_dato(key_ef_rec, [])
-    if st.session_state[key_ef_rec]:
-        for idx, (nom_r, imp_r) in enumerate(st.session_state[key_ef_rec]):
-            val_r, clave_r = get_valor_historico(f"ef_rec_{nom_r.replace(' ','_')}", mi, anio, imp_r)
-            c1, c2, c3 = st.columns([2, 1, 0.5])
-            with c1: st.write(f"🔁 {nom_r}")
-            with c2:
-                v = st.number_input(f"rec ef {nom_r}", min_value=0.0, max_value=5000.0,
-                                    value=val_r, step=0.5, label_visibility="collapsed",
-                                    key=f"ef_rec_{idx}_{mi}_{anio}")
-                if v != val_r: set_dato(clave_r, v)
-                total_extras += v
-            with c3:
-                if st.button("🗑️", key=f"del_ef_rec_{idx}_{mi}_{anio}"):
-                    set_dato(f"ef_rec_{nom_r.replace(' ','_')}_{mi}_{anio}", v)
-                    lista_rec_ef = get_dato(key_ef_rec, [])
-                    lista_rec_ef = [x for x in lista_rec_ef if x[0] != nom_r]
-                    set_dato(key_ef_rec, lista_rec_ef)
-                    st.session_state[key_ef_rec] = lista_rec_ef
-                    m_sig, a_sig = (mi % 12) + 1, int(anio) + (1 if mi == 12 else 0)
-                    for _ in range(24):
-                        set_dato(f"ef_rec_{nom_r.replace(' ','_')}_{m_sig}_{a_sig}", 0.0)
-                        m_sig = (m_sig % 12) + 1
-                        if m_sig == 1: a_sig += 1
-                    cargar_todos_datos.clear()
-                    st.rerun()
+    key_ef_rec = "efectivo_recurrentes_v2"
+    ef_rec_todos = get_dato(key_ef_rec, [])
+    ef_rec_activos = [
+        r for r in ef_rec_todos
+        if (int(anio) > r[2] or (int(anio) == r[2] and mi >= r[3]))
+        and (int(anio) < r[4] or (int(anio) == r[4] and mi < r[5]))
+    ]
+    for r_item in ef_rec_activos:
+        nom_r, imp_r = r_item[0], r_item[1]
+        val_r, clave_r = get_valor_historico(f"ef_rec_{nom_r.replace(' ','_')}", mi, anio, imp_r)
+        c1, c2, c3 = st.columns([2, 1, 0.5])
+        with c1: st.write(f"🔁 {nom_r}")
+        with c2:
+            v = st.number_input(f"rec ef {nom_r}", min_value=0.0, max_value=5000.0,
+                                value=val_r, step=0.5, label_visibility="collapsed",
+                                key=f"ef_rec_{nom_r}_{mi}_{anio}")
+            if v != val_r: set_dato(clave_r, v)
+            total_extras += v
+        with c3:
+            if st.button("🗑️", key=f"del_ef_rec_{nom_r}_{mi}_{anio}"):
+                nuevos = []
+                for r2 in ef_rec_todos:
+                    if r2[0] == nom_r:
+                        nuevos.append((r2[0], r2[1], r2[2], r2[3], int(anio), mi))
+                    else:
+                        nuevos.append(r2)
+                set_dato(key_ef_rec, nuevos)
+                cargar_todos_datos.clear()
+                st.rerun()
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
         ef_rec_nom = st.text_input("Recurrente Efectivo", placeholder="Ej: Peluquería",
@@ -837,11 +836,11 @@ with tab_efectivo:
         if st.button("Añadir recurrente", key=f"btn_ef_rec_{mi}_{anio}"):
             if ef_rec_nom and ef_rec_imp > 0:
                 lista_r = get_dato(key_ef_rec, [])
-                lista_r = [x for x in lista_r if x[0] != ef_rec_nom]
-                lista_r.append((ef_rec_nom, ef_rec_imp))
+                lista_r = [x for x in lista_r if not (x[0] == ef_rec_nom and x[4] == 9999)]
+                lista_r.append((ef_rec_nom, ef_rec_imp, int(anio), mi, 9999, 12))
                 set_dato(key_ef_rec, lista_r)
-                st.session_state[key_ef_rec] = lista_r
                 set_dato(f"ef_rec_{ef_rec_nom.replace(' ','_')}_{mi}_{anio}", ef_rec_imp)
+                cargar_todos_datos.clear()
                 st.rerun()
     st.markdown("---")
     # ── Puntual Efectivo (solo este mes) ──
