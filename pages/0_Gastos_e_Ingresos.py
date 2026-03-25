@@ -385,9 +385,24 @@ if st.session_state.get(f"show_nuevo_sobre_{mi}_{anio}", False):
         if st.button("💾 Guardar sobre", key=f"btn_add_tr_{mi}_{anio}"):
             if tr_nombre and tr_importe_total > 0:
                 nuevo = (tr_nombre, tr_mensualizado, tr_periodo, tr_importe_total, tr_mes_pago)
-                st.session_state[key_tr_extra].append(nuevo)
-                set_dato(key_tr_extra, st.session_state[key_tr_extra])
+                # Guardar en los meses que corresponde según periodicidad
+                meses_vigencia = {"Mensual": 24, "Trimestral": 3, "Semestral": 6, "Anual": 12}
+                n_meses = meses_vigencia[tr_periodo]
+                m, a = mi, int(anio)
+                for _ in range(n_meses):
+                    k = f"tr_extra_{m}_{a}"
+                    lista_k = get_dato(k, [])
+                    # Evitar duplicados por nombre
+                    lista_k = [x for x in lista_k if (x[0] if len(x)>1 else x) != tr_nombre]
+                    lista_k.append(nuevo)
+                    set_dato(k, lista_k)
+                    m += 1
+                    if m > 12:
+                        m = 1
+                        a += 1
+                st.session_state[key_tr_extra] = get_dato(key_tr_extra, [])
                 st.session_state[f"show_nuevo_sobre_{mi}_{anio}"] = False
+                cargar_todos_datos.clear()
                 st.rerun()
     with c6:
         if st.button("Cancelar", key=f"btn_cancel_sobre_{mi}_{anio}"):
@@ -662,6 +677,16 @@ with tab_bbva:
                 gastos_bbva_reales[nom_r] = v
             with c3:
                 if st.button("🗑️", key=f"del_bbva_rec_{idx}_{mi}_{anio}"):
+                    # Marcar fecha de baja — no borrar histórico
+                    # Guardar el importe actual del mes para conservarlo
+                    set_dato(f"bbva_rec_{nom_r.replace(' ','_')}_{mi}_{anio}", v)
+                    # Guardar baja: importe 0 desde el mes siguiente
+                    m_sig, a_sig = (mi % 12) + 1, int(anio) + (1 if mi == 12 else 0)
+                    for fut in range(24):
+                        k_fut = f"bbva_rec_{nom_r.replace(' ','_')}_{m_sig}_{a_sig}"
+                        set_dato(k_fut, 0.0)
+                        m_sig = (m_sig % 12) + 1
+                        if m_sig == 1: a_sig += 1
                     st.session_state[key_bbva_rec].pop(idx)
                     set_dato(key_bbva_rec, st.session_state[key_bbva_rec])
                     st.rerun()
@@ -773,6 +798,13 @@ with tab_efectivo:
                 total_extras += v
             with c3:
                 if st.button("🗑️", key=f"del_ef_rec_{idx}_{mi}_{anio}"):
+                    set_dato(f"ef_rec_{nom_r.replace(' ','_')}_{mi}_{anio}", v)
+                    m_sig, a_sig = (mi % 12) + 1, int(anio) + (1 if mi == 12 else 0)
+                    for fut in range(24):
+                        k_fut = f"ef_rec_{nom_r.replace(' ','_')}_{m_sig}_{a_sig}"
+                        set_dato(k_fut, 0.0)
+                        m_sig = (m_sig % 12) + 1
+                        if m_sig == 1: a_sig += 1
                     st.session_state[key_ef_rec].pop(idx)
                     set_dato(key_ef_rec, st.session_state[key_ef_rec])
                     st.rerun()
@@ -848,8 +880,12 @@ with st.expander("Ver desglose completo"):
     st.write(f"- Pagos anuales: {total_anuales:.2f} EUR/mes")
     st.write(f"- Mod. 130 (mensualizado): {total_mensuales:.2f} EUR")
     st.write(f"- Ahorro inversion: {total_ahorro:.2f} EUR")
-    for nombre_t, importe_t in st.session_state[key_tr_extra]:
-        st.write(f"- {nombre_t}: {importe_t:.2f} EUR")
+    for item_t in st.session_state[key_tr_extra]:
+        if len(item_t) == 2:
+            nombre_t, importe_t = item_t
+        else:
+            nombre_t, importe_t = item_t[0], item_t[1]
+        st.write(f"- {nombre_t}: {importe_t:.2f} EUR/mes")
     st.write(f"**= Total Trade Republic: {total_sobres:.2f} EUR**")
     st.markdown("---")
     st.markdown("<b style='color:#FF69B4'>BBVA:</b>", unsafe_allow_html=True)
