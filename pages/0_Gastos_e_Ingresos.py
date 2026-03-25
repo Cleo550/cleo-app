@@ -339,8 +339,18 @@ if st.session_state[key_tr_extra]:
             st.write(f"{importe_t:.2f} EUR/mes")
         with c3:
             if st.button("🗑️", key=f"del_tr_{idx}_{mi}_{anio}"):
-                st.session_state[key_tr_extra].pop(idx)
-                set_dato(key_tr_extra, st.session_state[key_tr_extra])
+                # Borrar de este mes y de todos los meses futuros
+                m_b, a_b = mi, int(anio)
+                for _ in range(25):
+                    k_b = f"tr_extra_{m_b}_{a_b}"
+                    lista_b = get_dato(k_b, [])
+                    lista_b = [x for x in lista_b if (x[0] if len(x) >= 1 else "") != nombre_t]
+                    set_dato(k_b, lista_b)
+                    if k_b == key_tr_extra:
+                        st.session_state[key_tr_extra] = lista_b
+                    m_b = (m_b % 12) + 1
+                    if m_b == 1: a_b += 1
+                cargar_todos_datos.clear()
                 st.rerun()
         # Aviso el mes anterior al pago
         if mes_pago_t:
@@ -677,18 +687,20 @@ with tab_bbva:
                 gastos_bbva_reales[nom_r] = v
             with c3:
                 if st.button("🗑️", key=f"del_bbva_rec_{idx}_{mi}_{anio}"):
-                    # Marcar fecha de baja — no borrar histórico
-                    # Guardar el importe actual del mes para conservarlo
+                    # Guardar el importe del mes actual (conservar histórico)
                     set_dato(f"bbva_rec_{nom_r.replace(' ','_')}_{mi}_{anio}", v)
-                    # Guardar baja: importe 0 desde el mes siguiente
+                    # Quitar de la lista global de recurrentes
+                    lista_rec = get_dato(key_bbva_rec, [])
+                    lista_rec = [x for x in lista_rec if x[0] != nom_r]
+                    set_dato(key_bbva_rec, lista_rec)
+                    st.session_state[key_bbva_rec] = lista_rec
+                    # Poner 0 en los meses SIGUIENTES (a partir del mes siguiente)
                     m_sig, a_sig = (mi % 12) + 1, int(anio) + (1 if mi == 12 else 0)
-                    for fut in range(24):
-                        k_fut = f"bbva_rec_{nom_r.replace(' ','_')}_{m_sig}_{a_sig}"
-                        set_dato(k_fut, 0.0)
+                    for _ in range(24):
+                        set_dato(f"bbva_rec_{nom_r.replace(' ','_')}_{m_sig}_{a_sig}", 0.0)
                         m_sig = (m_sig % 12) + 1
                         if m_sig == 1: a_sig += 1
-                    st.session_state[key_bbva_rec].pop(idx)
-                    set_dato(key_bbva_rec, st.session_state[key_bbva_rec])
+                    cargar_todos_datos.clear()
                     st.rerun()
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
@@ -799,14 +811,16 @@ with tab_efectivo:
             with c3:
                 if st.button("🗑️", key=f"del_ef_rec_{idx}_{mi}_{anio}"):
                     set_dato(f"ef_rec_{nom_r.replace(' ','_')}_{mi}_{anio}", v)
+                    lista_rec_ef = get_dato(key_ef_rec, [])
+                    lista_rec_ef = [x for x in lista_rec_ef if x[0] != nom_r]
+                    set_dato(key_ef_rec, lista_rec_ef)
+                    st.session_state[key_ef_rec] = lista_rec_ef
                     m_sig, a_sig = (mi % 12) + 1, int(anio) + (1 if mi == 12 else 0)
-                    for fut in range(24):
-                        k_fut = f"ef_rec_{nom_r.replace(' ','_')}_{m_sig}_{a_sig}"
-                        set_dato(k_fut, 0.0)
+                    for _ in range(24):
+                        set_dato(f"ef_rec_{nom_r.replace(' ','_')}_{m_sig}_{a_sig}", 0.0)
                         m_sig = (m_sig % 12) + 1
                         if m_sig == 1: a_sig += 1
-                    st.session_state[key_ef_rec].pop(idx)
-                    set_dato(key_ef_rec, st.session_state[key_ef_rec])
+                    cargar_todos_datos.clear()
                     st.rerun()
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
