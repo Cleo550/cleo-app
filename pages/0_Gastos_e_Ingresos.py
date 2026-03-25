@@ -323,16 +323,16 @@ total_anuales = sum(sobres_vals[k] for k in SOBRES_ANUALES)
 key_tr_extra = f"tr_extra_{mi}_{anio}"
 if key_tr_extra not in st.session_state:
     st.session_state[key_tr_extra] = get_dato(key_tr_extra, [])
-# Añadir sobres globales activos en este mes
-_sobres_g = get_dato("tr_sobres_global", [])
-_nombres_ya = {x[0] for x in st.session_state[key_tr_extra] if len(x) >= 1}
+# Añadir sobres globales activos en este mes (sin duplicar)
+_sobres_g = get_dato("tr_sobres_v2", [])
+_nombres_ya = {x[0] for x in st.session_state[key_tr_extra] if len(x)>=1}
 for _sg in _sobres_g:
-    # _sg: (nombre, mensualizado, periodo, total, mes_pago, a_baja, m_baja, a_ini, m_ini)
-    _nom_sg, _mens_sg, _per_sg, _tot_sg, _mp_sg, _a_baja, _m_baja, _a_ini, _m_ini = _sg
-    _inicio_ok = (int(anio) > _a_ini) or (int(anio) == _a_ini and mi >= _m_ini)
-    _baja_ok = (int(anio) < _a_baja) or (int(anio) == _a_baja and mi < _m_baja)
-    if _inicio_ok and _baja_ok and _nom_sg not in _nombres_ya:
-        st.session_state[key_tr_extra].append((_nom_sg, _mens_sg, _per_sg, _tot_sg, _mp_sg))
+    # (_sg): (nombre, mensualizado, periodo, total, mes_pago, a_ini, m_ini, a_baja, m_baja)
+    _n,_mens,_per,_tot,_mp,_a_ini,_m_ini,_a_baja,_m_baja = _sg
+    _inicio = (int(anio)>_a_ini) or (int(anio)==_a_ini and mi>=_m_ini)
+    _baja = (int(anio)<_a_baja) or (int(anio)==_a_baja and mi<_m_baja)
+    if _inicio and _baja and _n not in _nombres_ya:
+        st.session_state[key_tr_extra].append((_n,_mens,_per,_tot,_mp))
 
 if st.session_state[key_tr_extra]:
     for idx, item in enumerate(st.session_state[key_tr_extra]):
@@ -349,20 +349,15 @@ if st.session_state[key_tr_extra]:
             st.write(f"{importe_t:.2f} EUR/mes")
         with c3:
             if st.button("🗑️", key=f"del_tr_{idx}_{mi}_{anio}"):
-                _nom_borrar = nombre_t
-                # Poner fecha de baja en sobres global
-                sobres_g2 = get_dato("tr_sobres_global", [])
-                nuevos_g2 = []
-                for _sg2 in sobres_g2:
-                    if _sg2[0] == _nom_borrar and _sg2[5] == 9999:
-                        nuevos_g2.append((_sg2[0],_sg2[1],_sg2[2],_sg2[3],_sg2[4],int(anio),mi,_sg2[7],_sg2[8]))
-                    else:
-                        nuevos_g2.append(_sg2)
-                set_dato("tr_sobres_global", nuevos_g2)
-                # Borrar del mes actual
-                lista_b = [x for x in st.session_state[key_tr_extra] if (x[0] if len(x)>=1 else "") != _nom_borrar]
-                st.session_state[key_tr_extra] = lista_b
-                set_dato(key_tr_extra, lista_b)
+                _nom = nombre_t
+                sobres_g = get_dato("tr_sobres_v2", [])
+                nuevos = [(s[0],s[1],s[2],s[3],s[4],s[5],s[6],int(anio),mi)
+                          if (s[0]==_nom and s[7]==9999) else s for s in sobres_g]
+                set_dato("tr_sobres_v2", nuevos)
+                lista_mes = [x for x in st.session_state[key_tr_extra]
+                             if (x[0] if len(x)>=1 else "")!=_nom]
+                st.session_state[key_tr_extra] = lista_mes
+                set_dato(key_tr_extra, lista_mes)
                 cargar_todos_datos.clear()
                 st.rerun()
         # Aviso el mes anterior al pago
@@ -407,23 +402,23 @@ if st.session_state.get(f"show_nuevo_sobre_{mi}_{anio}", False):
     with c5:
         if st.button("💾 Guardar sobre", key=f"btn_add_tr_{mi}_{anio}"):
             if tr_nombre and tr_importe_total > 0:
-                nuevo = (tr_nombre, tr_mensualizado, tr_periodo, tr_importe_total, tr_mes_pago)
-                # Guardar en clave global de sobres (sin mes)
-                key_sobres_global = "tr_sobres_global"
-                sobres_g = get_dato(key_sobres_global, [])
-                # Quitar duplicado activo con mismo nombre
-                sobres_g = [x for x in sobres_g if not (x[0] == tr_nombre and x[5] == 9999)]
-                # Guardar: (nombre, mensualizado, periodo, total, mes_pago, a_baja, m_baja, a_ini, m_ini)
-                sobres_g.append((tr_nombre, tr_mensualizado, tr_periodo, tr_importe_total, tr_mes_pago, 9999, 12, int(anio), mi))
-                set_dato(key_sobres_global, sobres_g)
-                # También guardar en el mes actual para compatibilidad
-                lista_k = get_dato(key_tr_extra, [])
-                lista_k = [x for x in lista_k if (x[0] if len(x)>=1 else "") != tr_nombre]
-                lista_k.append(nuevo)
-                set_dato(key_tr_extra, lista_k)
-                st.session_state[key_tr_extra] = lista_k
-                st.session_state[f"show_nuevo_sobre_{mi}_{anio}"] = False
+                n_meses = {"Mensual": 9999, "Trimestral": 3, "Semestral": 6, "Anual": 12}[tr_periodo]
+                if n_meses == 9999:
+                    a_baja, m_baja = 9999, 12
+                else:
+                    m_fin, a_fin = mi, int(anio)
+                    for _ in range(n_meses):
+                        m_fin += 1
+                        if m_fin > 12: m_fin = 1; a_fin += 1
+                    a_baja, m_baja = a_fin, m_fin
+                sobres_g = get_dato("tr_sobres_v2", [])
+                sobres_g = [x for x in sobres_g if not (x[0]==tr_nombre and x[7]==9999)]
+                sobres_g.append((tr_nombre, tr_mensualizado, tr_periodo, tr_importe_total,
+                                  tr_mes_pago, int(anio), mi, a_baja, m_baja))
+                set_dato("tr_sobres_v2", sobres_g)
                 cargar_todos_datos.clear()
+                st.session_state.pop(key_tr_extra, None)
+                st.session_state[f"show_nuevo_sobre_{mi}_{anio}"] = False
                 st.rerun()
     with c6:
         if st.button("Cancelar", key=f"btn_cancel_sobre_{mi}_{anio}"):
@@ -681,14 +676,13 @@ with tab_bbva:
 
     st.markdown("---")
     # ── Recurrente BBVA (persiste todos los meses) ──
-    # Recurrentes BBVA: lista global con (nombre, importe, a_ini, m_ini, a_baja, m_baja)
-    # a_baja=9999 = sin baja (activo). Al borrar se pone a_baja=año_actual, m_baja=mes_actual
+    # Recurrentes BBVA: (nombre, importe, a_ini, m_ini, a_baja, m_baja)
     key_bbva_rec = "bbva_rec_v2"
     bbva_rec_lista = get_dato(key_bbva_rec, [])
-    # Mostrar solo los activos en el mes actual
     for r_item in bbva_rec_lista:
+        if len(r_item) == 2:
+            r_item = (r_item[0], r_item[1], 2020, 1, 9999, 12)
         nom_r, imp_r, a_ini, m_ini, a_baja, m_baja = r_item
-        # Activo si: inicio <= mes_actual < baja
         inicio_ok = (int(anio) > a_ini) or (int(anio) == a_ini and mi >= m_ini)
         baja_ok = (int(anio) < a_baja) or (int(anio) == a_baja and mi < m_baja)
         if not (inicio_ok and baja_ok):
@@ -704,14 +698,8 @@ with tab_bbva:
             total_fijos += v
             gastos_bbva_reales[nom_r] = v
         with c3:
-            if st.button("🗑️", key=f"del_bbva_rec_{nom_r.replace(' ','_')}_{mi}_{anio}"):
-                # Poner fecha de baja = mes actual (no tocar histórico)
-                nuevos = []
-                for r2 in bbva_rec_lista:
-                    if r2[0] == nom_r and r2[4] == 9999:
-                        nuevos.append((r2[0], r2[1], r2[2], r2[3], int(anio), mi))
-                    else:
-                        nuevos.append(r2)
+            if st.button("🗑️", key=f"del_bbva_{nom_r.replace(' ','_')}_{mi}_{anio}"):
+                nuevos = [(r[0],r[1],r[2],r[3],int(anio),mi) if (r[0]==nom_r and r[4]==9999) else r for r in bbva_rec_lista]
                 set_dato(key_bbva_rec, nuevos)
                 cargar_todos_datos.clear()
                 st.rerun()
@@ -730,8 +718,7 @@ with tab_bbva:
         if st.button("Añadir recurrente", key=f"btn_bbva_rec_{mi}_{anio}"):
             if bbva_rec_nom and bbva_rec_imp > 0:
                 lista_r = get_dato(key_bbva_rec, [])
-                # Evitar duplicado activo
-                lista_r = [x for x in lista_r if not (x[0] == bbva_rec_nom and x[4] == 9999)]
+                lista_r = [x for x in lista_r if not (x[0]==bbva_rec_nom and (len(x)<5 or x[4]==9999))]
                 lista_r.append((bbva_rec_nom, bbva_rec_imp, int(anio), mi, 9999, 12))
                 set_dato(key_bbva_rec, lista_r)
                 set_dato(f"bbva_rec_{bbva_rec_nom.replace(' ','_')}_{mi}_{anio}", bbva_rec_imp)
@@ -807,10 +794,13 @@ with tab_efectivo:
             total_extras += importe_g
 
     st.markdown("---")
-    # Recurrentes Efectivo: mismo sistema que BBVA
+    # Recurrentes Efectivo: (nombre, importe, a_ini, m_ini, a_baja, m_baja)
     key_ef_rec = "ef_rec_v2"
     ef_rec_lista = get_dato(key_ef_rec, [])
     for r_item in ef_rec_lista:
+        if len(r_item) == 2:
+            # migrar formato antiguo
+            r_item = (r_item[0], r_item[1], 2020, 1, 9999, 12)
         nom_r, imp_r, a_ini, m_ini, a_baja, m_baja = r_item
         inicio_ok = (int(anio) > a_ini) or (int(anio) == a_ini and mi >= m_ini)
         baja_ok = (int(anio) < a_baja) or (int(anio) == a_baja and mi < m_baja)
@@ -826,13 +816,8 @@ with tab_efectivo:
             if v != val_r: set_dato(clave_r, v)
             total_extras += v
         with c3:
-            if st.button("🗑️", key=f"del_ef_rec_{nom_r.replace(' ','_')}_{mi}_{anio}"):
-                nuevos = []
-                for r2 in ef_rec_lista:
-                    if r2[0] == nom_r and r2[4] == 9999:
-                        nuevos.append((r2[0], r2[1], r2[2], r2[3], int(anio), mi))
-                    else:
-                        nuevos.append(r2)
+            if st.button("🗑️", key=f"del_ef_{nom_r.replace(' ','_')}_{mi}_{anio}"):
+                nuevos = [(r[0],r[1],r[2],r[3],int(anio),mi) if (r[0]==nom_r and r[4]==9999) else r for r in ef_rec_lista]
                 set_dato(key_ef_rec, nuevos)
                 cargar_todos_datos.clear()
                 st.rerun()
@@ -851,7 +836,7 @@ with tab_efectivo:
         if st.button("Añadir recurrente", key=f"btn_ef_rec_{mi}_{anio}"):
             if ef_rec_nom and ef_rec_imp > 0:
                 lista_r = get_dato(key_ef_rec, [])
-                lista_r = [x for x in lista_r if not (x[0] == ef_rec_nom and x[4] == 9999)]
+                lista_r = [x for x in lista_r if not (x[0]==ef_rec_nom and (len(x)<5 or x[4]==9999))]
                 lista_r.append((ef_rec_nom, ef_rec_imp, int(anio), mi, 9999, 12))
                 set_dato(key_ef_rec, lista_r)
                 set_dato(f"ef_rec_{ef_rec_nom.replace(' ','_')}_{mi}_{anio}", ef_rec_imp)
