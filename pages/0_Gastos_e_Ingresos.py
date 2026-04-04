@@ -364,7 +364,11 @@ if st.session_state[key_tr_extra]:
                     value=float(total_t), step=0.5,
                     key=f"tr_extra_total_{idx}_{mi}_{anio}"
                 )
-                divisor = {"Mensual": 1, "Trimestral": 3, "Semestral": 6, "Anual": 12}.get(periodo_t, 1)
+                divisor = {
+                    "2 meses": 2, "Trimestral (3m)": 3, "4 meses": 4, "5 meses": 5,
+                    "Semestral (6m)": 6, "7 meses": 7, "8 meses": 8, "9 meses": 9,
+                    "10 meses": 10, "11 meses": 11, "Anual (12m)": 12
+                }.get(periodo_t, 12)
                 nuevo_mens = round(nuevo_total / divisor, 2)
                 if abs(nuevo_total - float(total_t)) > 0.001:
                     sobres_upd = get_dato("tr_sobres_v2", [])
@@ -429,8 +433,11 @@ if st.session_state.get(f"show_nuevo_sobre_{mi}_{anio}", False):
         tr_nombre = st.text_input("Nombre del sobre", placeholder="Ej: Seguro hogar",
                                    key=f"tr_nombre_{mi}_{anio}")
     with c2:
-        tr_periodo = st.selectbox("Periodicidad", ["Mensual", "Trimestral", "Semestral", "Anual"],
-                                   key=f"tr_periodo_{mi}_{anio}")
+        tr_periodo = st.selectbox("Periodicidad", [
+                                       "2 meses", "Trimestral (3m)", "4 meses", "5 meses",
+                                       "Semestral (6m)", "7 meses", "8 meses", "9 meses",
+                                       "10 meses", "11 meses", "Anual (12m)"
+                                   ], key=f"tr_periodo_{mi}_{anio}")
     c3, c4 = st.columns(2)
     with c3:
         tr_importe_total = st.number_input("Importe total del periodo (EUR)",
@@ -441,7 +448,11 @@ if st.session_state.get(f"show_nuevo_sobre_{mi}_{anio}", False):
                                     format_func=lambda x: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"][x-1],
                                     key=f"tr_mes_pago_{mi}_{anio}")
 
-    divisor = {"Mensual": 1, "Trimestral": 3, "Semestral": 6, "Anual": 12}[tr_periodo]
+    divisor = {
+        "2 meses": 2, "Trimestral (3m)": 3, "4 meses": 4, "5 meses": 5,
+        "Semestral (6m)": 6, "7 meses": 7, "8 meses": 8, "9 meses": 9,
+        "10 meses": 10, "11 meses": 11, "Anual (12m)": 12
+    }.get(tr_periodo, 12)
     tr_mensualizado = round(tr_importe_total / divisor, 2)
     if tr_importe_total > 0:
         st.caption(f"Apartando {tr_mensualizado:.2f} EUR/mes")
@@ -450,8 +461,12 @@ if st.session_state.get(f"show_nuevo_sobre_{mi}_{anio}", False):
     with c5:
         if st.button("💾 Guardar sobre", key=f"btn_add_tr_{mi}_{anio}"):
             if tr_nombre and tr_importe_total > 0:
-                n_meses = {"Mensual": 9999, "Trimestral": 3, "Semestral": 6, "Anual": 12}[tr_periodo]
-                if n_meses == 9999:
+                n_meses = {
+                    "2 meses": 2, "Trimestral (3m)": 3, "4 meses": 4, "5 meses": 5,
+                    "Semestral (6m)": 6, "7 meses": 7, "8 meses": 8, "9 meses": 9,
+                    "10 meses": 10, "11 meses": 11, "Anual (12m)": 12
+                }.get(tr_periodo, 12)
+                if False:
                     a_baja, m_baja = 9999, 12
                 else:
                     m_fin, a_fin = mi, int(anio)
