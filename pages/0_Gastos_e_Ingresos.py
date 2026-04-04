@@ -350,15 +350,22 @@ if st.session_state[key_tr_extra]:
         with c3:
             if st.button("🗑️", key=f"del_tr_{idx}_{mi}_{anio}"):
                 _nom = nombre_t
-                # Calcular mes siguiente para la baja
-                _m_baja = mi + 1 if mi < 12 else 1
-                _a_baja = int(anio) if mi < 12 else int(anio) + 1
+                # Mes siguiente para la baja
+                _m_baja_nueva = mi + 1 if mi < 12 else 1
+                _a_baja_nueva = int(anio) if mi < 12 else int(anio) + 1
                 sobres_g = get_dato("tr_sobres_v2", [])
                 nuevos = []
                 for s in sobres_g:
-                    if s[0] == _nom and s[7] == 9999:
-                        # Poner baja = mes siguiente al actual
-                        nuevos.append((s[0],s[1],s[2],s[3],s[4],s[5],s[6],_a_baja,_m_baja))
+                    if s[0] == _nom:
+                        # Acortar la baja al mes siguiente si la baja actual es posterior
+                        baja_actual_a, baja_actual_m = s[7], s[8]
+                        baja_nueva_posterior = (_a_baja_nueva > baja_actual_a) or \
+                            (_a_baja_nueva == baja_actual_a and _m_baja_nueva >= baja_actual_m)
+                        if not baja_nueva_posterior:
+                            nuevos.append((s[0],s[1],s[2],s[3],s[4],s[5],s[6],_a_baja_nueva,_m_baja_nueva))
+                        # Si la baja nueva es posterior a la actual, no tocar (ya estaba borrado)
+                        else:
+                            nuevos.append(s)
                     else:
                         nuevos.append(s)
                 set_dato("tr_sobres_v2", nuevos)
@@ -416,7 +423,8 @@ if st.session_state.get(f"show_nuevo_sobre_{mi}_{anio}", False):
                         if m_fin > 12: m_fin = 1; a_fin += 1
                     a_baja, m_baja = a_fin, m_fin
                 sobres_g = get_dato("tr_sobres_v2", [])
-                sobres_g = [x for x in sobres_g if not (x[0]==tr_nombre and x[7]==9999)]
+                # Quitar cualquier sobre activo con el mismo nombre en este mes
+                sobres_g = [x for x in sobres_g if x[0] != tr_nombre]
                 sobres_g.append((tr_nombre, tr_mensualizado, tr_periodo, tr_importe_total,
                                   tr_mes_pago, int(anio), mi, a_baja, m_baja))
                 set_dato("tr_sobres_v2", sobres_g)
