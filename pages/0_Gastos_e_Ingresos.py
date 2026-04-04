@@ -102,10 +102,8 @@ def get_sobre_anual(nombre, mi, anio, defecto, todos):
 def set_dato(clave, valor):
     try:
         supabase.table("datos_app").upsert({"clave": clave, "valor": json.dumps(valor)}).execute()
-        # Actualizar cache local
         if "_todos_datos" in st.session_state:
             st.session_state["_todos_datos"][clave] = valor
-        cargar_todos_datos.clear()
     except:
         pass
 
