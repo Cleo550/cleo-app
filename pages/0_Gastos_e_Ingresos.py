@@ -279,9 +279,10 @@ for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
     # Comprobar si este sobre tiene baja
     clave_baja_sobre = f"sobre_baja_{nombre.replace(' ','_')}"
     baja_sobre = get_dato_local(_datos, clave_baja_sobre, None)
-    if baja_sobre:
-        b_a, b_m = baja_sobre
+    if baja_sobre and isinstance(baja_sobre, (list, tuple)) and len(baja_sobre) == 2:
+        b_a, b_m = int(baja_sobre[0]), int(baja_sobre[1])
         if (int(anio) > b_a) or (int(anio) == b_a and mi >= b_m):
+            sobres_vals[nombre] = 0.0
             continue  # dado de baja, no mostrar
 
     with st.expander(f"**{nombre}**", expanded=True):
@@ -710,8 +711,8 @@ with tab_bbva:
         # Comprobar baja
         clave_baja_bbva = f"bbva_baja_{gasto.replace(' ','_')}"
         baja_bbva = get_dato_local(_datos, clave_baja_bbva, None)
-        if baja_bbva:
-            b_a, b_m = baja_bbva
+        if baja_bbva and isinstance(baja_bbva, (list, tuple)) and len(baja_bbva) == 2:
+            b_a, b_m = int(baja_bbva[0]), int(baja_bbva[1])
             if (int(anio) > b_a) or (int(anio) == b_a and mi >= b_m):
                 continue
         val_guardado_bbva, clave_bbva = get_valor_historico(f"bbva_{gasto.replace(' ','_')}", mi, anio, importe)
@@ -839,8 +840,8 @@ with tab_efectivo:
     for gasto, importe in GASTOS_EXTRA_DEF.items():
         clave_baja_ef = f"ef_baja_{gasto.replace(' ','_')}"
         baja_ef = get_dato_local(_datos, clave_baja_ef, None)
-        if baja_ef:
-            b_a, b_m = baja_ef
+        if baja_ef and isinstance(baja_ef, (list, tuple)) and len(baja_ef) == 2:
+            b_a, b_m = int(baja_ef[0]), int(baja_ef[1])
             if (int(anio) > b_a) or (int(anio) == b_a and mi >= b_m):
                 continue
         val_guardado_ef, clave_ef = get_valor_historico(f"efectivo_{gasto.replace(' ','_')}", mi, anio, importe)
