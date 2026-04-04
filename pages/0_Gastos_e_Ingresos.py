@@ -350,14 +350,18 @@ if st.session_state[key_tr_extra]:
         with c3:
             if st.button("🗑️", key=f"del_tr_{idx}_{mi}_{anio}"):
                 _nom = nombre_t
+                # Calcular mes siguiente para la baja
+                _m_baja = mi + 1 if mi < 12 else 1
+                _a_baja = int(anio) if mi < 12 else int(anio) + 1
                 sobres_g = get_dato("tr_sobres_v2", [])
-                nuevos = [(s[0],s[1],s[2],s[3],s[4],s[5],s[6],int(anio),mi)
-                          if (s[0]==_nom and s[7]==9999) else s for s in sobres_g]
+                nuevos = []
+                for s in sobres_g:
+                    if s[0] == _nom and s[7] == 9999:
+                        # Poner baja = mes siguiente al actual
+                        nuevos.append((s[0],s[1],s[2],s[3],s[4],s[5],s[6],_a_baja,_m_baja))
+                    else:
+                        nuevos.append(s)
                 set_dato("tr_sobres_v2", nuevos)
-                lista_mes = [x for x in st.session_state[key_tr_extra]
-                             if (x[0] if len(x)>=1 else "")!=_nom]
-                st.session_state[key_tr_extra] = lista_mes
-                set_dato(key_tr_extra, lista_mes)
                 cargar_todos_datos.clear()
                 st.rerun()
         # Aviso el mes anterior al pago
