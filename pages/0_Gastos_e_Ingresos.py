@@ -267,6 +267,7 @@ sobres_vals = {}
 
 st.markdown("**Pagos anuales** - Ahorra mensualmente para no sufrir el golpe")
 todos_sobres = get_todos_sobres()
+sobres_vals = {k: 0.0 for k in SOBRES_ANUALES}  # inicializar todos a 0
 for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
     # Clave única por nombre + mes + año → busca hacia atrás si no hay dato
     anual_guardado, clave_anual = get_sobre_anual(nombre, mi, anio, anual_def, todos_sobres)
