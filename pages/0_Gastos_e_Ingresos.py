@@ -360,6 +360,7 @@ if st.session_state[key_tr_extra]:
                         nuevos.append(s)
                 set_dato("tr_sobres_v2", nuevos)
                 cargar_todos_datos.clear()
+                st.session_state.pop(key_tr_extra, None)
                 st.rerun()
         # Aviso el mes anterior al pago
         if mes_pago_t:
