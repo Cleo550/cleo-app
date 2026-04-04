@@ -696,7 +696,6 @@ with tab_bbva:
         st.session_state[key_bbva_extra] = get_dato(key_bbva_extra, [])
 
     if st.session_state[key_bbva_extra]:
-        st.markdown("*Gastos añadidos:*")
         for idx, (nombre_b, importe_b) in enumerate(st.session_state[key_bbva_extra]):
             c1, c2, c3 = st.columns([2, 1, 0.5])
             with c1:
@@ -710,7 +709,6 @@ with tab_bbva:
                     st.rerun()
             total_fijos += importe_b
 
-    st.markdown("---")
     # ── Recurrente BBVA (persiste todos los meses) ──
     # Recurrentes BBVA: (nombre, importe, a_ini, m_ini, a_baja, m_baja)
     key_bbva_rec = "bbva_rec_v2"
@@ -725,7 +723,7 @@ with tab_bbva:
             continue
         val_r, clave_r = get_valor_historico(f"bbva_rec_{nom_r.replace(' ','_')}", mi, anio, imp_r)
         c1, c2, c3 = st.columns([2, 1, 0.5])
-        with c1: st.write(f"🔁 {nom_r}")
+        with c1: st.write(nom_r)
         with c2:
             v = st.number_input(f"rec {nom_r}", min_value=0.0, max_value=5000.0,
                                 value=val_r, step=0.5, label_visibility="collapsed",
@@ -815,7 +813,6 @@ with tab_efectivo:
         st.session_state[key_ge_extra] = get_dato(key_ge_extra, [])
 
     if st.session_state[key_ge_extra]:
-        st.markdown("*Gastos añadidos:*")
         for idx, (nombre_g, importe_g) in enumerate(st.session_state[key_ge_extra]):
             c1, c2, c3 = st.columns([2, 1, 0.5])
             with c1:
@@ -829,7 +826,6 @@ with tab_efectivo:
                     st.rerun()
             total_extras += importe_g
 
-    st.markdown("---")
     # Recurrentes Efectivo: (nombre, importe, a_ini, m_ini, a_baja, m_baja)
     key_ef_rec = "ef_rec_v2"
     ef_rec_lista = get_dato(key_ef_rec, [])
@@ -844,7 +840,7 @@ with tab_efectivo:
             continue
         val_r, clave_r = get_valor_historico(f"ef_rec_{nom_r.replace(' ','_')}", mi, anio, imp_r)
         c1, c2, c3 = st.columns([2, 1, 0.5])
-        with c1: st.write(f"🔁 {nom_r}")
+        with c1: st.write(nom_r)
         with c2:
             v = st.number_input(f"rec ef {nom_r}", min_value=0.0, max_value=5000.0,
                                 value=val_r, step=0.5, label_visibility="collapsed",
