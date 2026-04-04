@@ -28,7 +28,7 @@ def get_supabase():
 
 supabase = get_supabase()
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=0)
 def cargar_todos_datos():
     """Carga TODOS los datos de Supabase de una sola vez."""
     try:
