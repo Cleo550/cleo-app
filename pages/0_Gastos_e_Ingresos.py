@@ -276,9 +276,9 @@ for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
     clave_mes_pago = f"sobre_mes_pago_{nombre.replace(' ','_')}"
     mes_pago_guardado = int(get_dato(clave_mes_pago, 1))
 
-    # Comprobar si este sobre tiene baja
+    # Comprobar si este sobre tiene baja (leer directo, no desde caché)
     clave_baja_sobre = f"sobre_baja_{nombre.replace(' ','_')}"
-    baja_sobre = get_dato_local(_datos, clave_baja_sobre, None)
+    baja_sobre = get_dato(clave_baja_sobre, None)
     if baja_sobre and isinstance(baja_sobre, (list, tuple)) and len(baja_sobre) == 2:
         b_a, b_m = int(baja_sobre[0]), int(baja_sobre[1])
         if (int(anio) > b_a) or (int(anio) == b_a and mi >= b_m):
@@ -710,7 +710,7 @@ with tab_bbva:
     for gasto, importe in GASTOS_BBVA.items():
         # Comprobar baja
         clave_baja_bbva = f"bbva_baja_{gasto.replace(' ','_')}"
-        baja_bbva = get_dato_local(_datos, clave_baja_bbva, None)
+        baja_bbva = get_dato(clave_baja_bbva, None)
         if baja_bbva and isinstance(baja_bbva, (list, tuple)) and len(baja_bbva) == 2:
             b_a, b_m = int(baja_bbva[0]), int(baja_bbva[1])
             if (int(anio) > b_a) or (int(anio) == b_a and mi >= b_m):
@@ -839,7 +839,7 @@ with tab_efectivo:
     total_extras = 0.0
     for gasto, importe in GASTOS_EXTRA_DEF.items():
         clave_baja_ef = f"ef_baja_{gasto.replace(' ','_')}"
-        baja_ef = get_dato_local(_datos, clave_baja_ef, None)
+        baja_ef = get_dato(clave_baja_ef, None)
         if baja_ef and isinstance(baja_ef, (list, tuple)) and len(baja_ef) == 2:
             b_a, b_m = int(baja_ef[0]), int(baja_ef[1])
             if (int(anio) > b_a) or (int(anio) == b_a and mi >= b_m):
