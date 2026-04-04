@@ -336,39 +336,72 @@ for _sg in _sobres_g:
 
 if st.session_state[key_tr_extra]:
     for idx, item in enumerate(st.session_state[key_tr_extra]):
-        # Compatibilidad: formato antiguo (nombre, importe) o nuevo (nombre, mensualizado, periodo, total, mes_pago)
         if len(item) == 2:
             nombre_t, importe_t = item
             periodo_t, total_t, mes_pago_t = "Mensual", importe_t, None
         else:
             nombre_t, importe_t, periodo_t, total_t, mes_pago_t = item
-        c1, c2, c3 = st.columns([3, 1.5, 0.5])
-        with c1:
-            st.write(f"**{nombre_t}** · {periodo_t} · {total_t:.2f} EUR")
-        with c2:
-            st.write(f"{importe_t:.2f} EUR/mes")
-        with c3:
-            if st.button("🗑️", key=f"del_tr_{idx}_{mi}_{anio}"):
-                _nom = nombre_t
-                sobres_g = get_dato("tr_sobres_v2", [])
-                nuevos = []
-                for s in sobres_g:
-                    if s[0] == _nom:
-                        # Baja = mes actual → desaparece ya
-                        nuevos.append((s[0],s[1],s[2],s[3],s[4],s[5],s[6],int(anio),mi))
-                    else:
-                        nuevos.append(s)
-                set_dato("tr_sobres_v2", nuevos)
-                cargar_todos_datos.clear()
-                st.session_state.pop(key_tr_extra, None)
-                st.rerun()
-        # Aviso el mes anterior al pago
-        if mes_pago_t:
-            mes_aviso = mes_pago_t - 1 if mes_pago_t > 1 else 12
-            if mi == mes_aviso:
+
+        with st.expander(f"**{nombre_t}**", expanded=True):
+            c1, c2, c3 = st.columns([2, 1, 0.3])
+            with c1:
+                # Importe editable — al cambiar, actualizar en tr_sobres_v2
+                nuevo_total = st.number_input(
+                    "Al año (EUR)", min_value=0.0, max_value=5000.0,
+                    value=float(total_t), step=0.5,
+                    key=f"tr_extra_total_{idx}_{mi}_{anio}"
+                )
+                divisor = {"Mensual": 1, "Trimestral": 3, "Semestral": 6, "Anual": 12}.get(periodo_t, 1)
+                nuevo_mens = round(nuevo_total / divisor, 2)
+                if abs(nuevo_total - float(total_t)) > 0.001:
+                    sobres_upd = get_dato("tr_sobres_v2", [])
+                    nuevos_upd = []
+                    for s in sobres_upd:
+                        if s[0] == nombre_t:
+                            nuevos_upd.append((s[0], nuevo_mens, s[2], nuevo_total, s[4], s[5], s[6], s[7], s[8]))
+                        else:
+                            nuevos_upd.append(s)
+                    set_dato("tr_sobres_v2", nuevos_upd)
+                    st.session_state.pop(key_tr_extra, None)
+                    cargar_todos_datos.clear()
+                st.markdown("**Al mes**")
+                st.markdown(f"### {nuevo_mens:.2f} €")
+            with c2:
                 meses_str = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
-                st.warning(f"⚠️ El próximo mes toca pagar **{nombre_t}**: {total_t:.2f} EUR ({meses_str[mes_pago_t-1]})")
-        total_sobres += importe_t
+                mes_pago_idx = (mes_pago_t - 1) if mes_pago_t else 0
+                nuevo_mes_pago = st.selectbox(
+                    "Mes pago", list(range(1, 13)),
+                    index=mes_pago_idx,
+                    format_func=lambda x: meses_str[x-1],
+                    key=f"tr_extra_mes_{idx}_{mi}_{anio}"
+                )
+                if mes_pago_t and nuevo_mes_pago != mes_pago_t:
+                    sobres_upd = get_dato("tr_sobres_v2", [])
+                    nuevos_upd = [(s[0],s[1],s[2],s[3],nuevo_mes_pago,s[5],s[6],s[7],s[8])
+                                  if s[0]==nombre_t else s for s in sobres_upd]
+                    set_dato("tr_sobres_v2", nuevos_upd)
+                    st.session_state.pop(key_tr_extra, None)
+                    cargar_todos_datos.clear()
+                st.caption(f"{periodo_t}")
+            with c3:
+                st.write("")
+                st.write("")
+                if st.button("🗑️", key=f"del_tr_{idx}_{mi}_{anio}"):
+                    _nom = nombre_t
+                    sobres_g = get_dato("tr_sobres_v2", [])
+                    nuevos = [(s[0],s[1],s[2],s[3],s[4],s[5],s[6],int(anio),mi)
+                              if s[0]==_nom else s for s in sobres_g]
+                    set_dato("tr_sobres_v2", nuevos)
+                    cargar_todos_datos.clear()
+                    st.session_state.pop(key_tr_extra, None)
+                    st.rerun()
+
+            # Aviso mes anterior al pago
+            if mes_pago_t:
+                mes_aviso = mes_pago_t - 1 if mes_pago_t > 1 else 12
+                if mi == mes_aviso:
+                    st.warning(f"⚠️ El próximo mes toca pagar **{nombre_t}**: {total_t:.2f} EUR ({meses_str[mes_pago_t-1]})")
+        total_sobres += nuevo_mens
 
 total_anuales = total_sobres
 st.info(f"Total pagos anuales: {total_anuales:.2f} EUR/mes · Al año: {total_anuales*12:.2f} EUR")
