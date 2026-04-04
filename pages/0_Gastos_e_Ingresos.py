@@ -320,6 +320,7 @@ for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
                 if st.button("🗑️", key=f"del_sobre_{i}_{mi}_{anio}"):
                     set_dato(clave_baja_sobre, [int(anio), mi])
                     cargar_todos_datos.clear()
+                    st.session_state.pop("_todos_datos", None)
                     st.rerun()
             if mes_pago != mes_pago_guardado:
                 supabase.table("datos_app").upsert({"clave": clave_mes_pago, "valor": str(mes_pago)}).execute()
@@ -731,6 +732,7 @@ with tab_bbva:
             if st.button("🗑️", key=f"del_bbva_fijo_{gasto.replace(' ','_')}_{mi}_{anio}"):
                 set_dato(clave_baja_bbva, [int(anio), mi])
                 cargar_todos_datos.clear()
+                st.session_state.pop("_todos_datos", None)
                 st.rerun()
 
     key_bbva_extra = f"bbva_extra_{mi}_{anio}"
@@ -859,6 +861,7 @@ with tab_efectivo:
             if st.button("🗑️", key=f"del_ef_fijo_{gasto.replace(' ','_')}_{mi}_{anio}"):
                 set_dato(clave_baja_ef, [int(anio), mi])
                 cargar_todos_datos.clear()
+                st.session_state.pop("_todos_datos", None)
                 st.rerun()
 
     key_ge_extra = f"gastos_extra_{mi}_{anio}"
