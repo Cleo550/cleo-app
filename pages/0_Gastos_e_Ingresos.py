@@ -266,10 +266,13 @@ sobres_vals = {}
 st.markdown("**Pagos anuales** - Ahorra mensualmente para no sufrir el golpe")
 todos_sobres = get_todos_sobres()
 sobres_vals = {k: 0.0 for k in SOBRES_ANUALES}  # inicializar todos a 0
-_ocultos = _datos.get("elementos_ocultos", [])
+_ocultos = _datos.get("elementos_ocultos", {})
+if not isinstance(_ocultos, dict): _ocultos = {}
 for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
     if nombre in _ocultos:
-        continue
+        _ob = _ocultos[nombre]
+        if (int(anio) > _ob[0]) or (int(anio) == _ob[0] and mi >= _ob[1]):
+            continue
     # Clave única por nombre + mes + año → busca hacia atrás si no hay dato
     anual_guardado, clave_anual = get_sobre_anual(nombre, mi, anio, anual_def, todos_sobres)
 
@@ -311,9 +314,9 @@ for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
             with cp3:
                 st.write("")
                 if st.button("🗑️", key=f"ocultar_sobre_{i}_{mi}_{anio}"):
-                    ocultos = _datos.get("elementos_ocultos", [])
-                    if nombre not in ocultos:
-                        ocultos.append(nombre)
+                    ocultos = _datos.get("elementos_ocultos", {})
+                    if not isinstance(ocultos, dict): ocultos = {}
+                    ocultos[nombre] = [int(anio), mi]
                     set_dato("elementos_ocultos", ocultos)
                     st.rerun()
             if mes_pago != mes_pago_guardado:
@@ -395,10 +398,11 @@ if st.session_state[key_tr_extra]:
                     st.session_state.pop(key_tr_extra, None)
                 st.caption(f"{periodo_t}")
                 if st.button("🗑️", key=f"ocultar_tr_nuevo_{idx}_{mi}_{anio}"):
-                    ocultos = _datos.get("elementos_ocultos", [])
-                    if nombre_t not in ocultos:
-                        ocultos.append(nombre_t)
-                    set_dato("elementos_ocultos", ocultos)
+                    sobres_g = get_dato("tr_sobres_v2", [])
+                    nuevos = [(s[0],s[1],s[2],s[3],s[4],s[5],s[6],int(anio),mi)
+                              if s[0]==nombre_t else s for s in sobres_g]
+                    set_dato("tr_sobres_v2", nuevos)
+                    st.session_state.pop(key_tr_extra, None)
                     st.rerun()
 
             # Aviso mes anterior al pago
@@ -693,10 +697,15 @@ with tab_bbva:
             total_tr_anuales_mes += float(anual_guardado)
             st.info(f"💰 Este mes toca pagar **{nombre_sobre}**: {anual_guardado:.2f} EUR (ahorrado en Trade Republic)")
 
-    _ocultos_bbva = _datos.get("elementos_ocultos", [])
+    _ocultos_bbva = _datos.get("elementos_ocultos", {})
+    if not isinstance(_ocultos_bbva, dict): _ocultos_bbva = {}
     for gasto, importe in GASTOS_BBVA.items():
         if gasto in _ocultos_bbva:
-            continue
+            _ob = _ocultos_bbva[gasto]
+            if not ((int(anio) > _ob[0]) or (int(anio) == _ob[0] and mi >= _ob[1])):
+                pass
+            else:
+                continue
         val_guardado_bbva, clave_bbva = get_valor_historico(f"bbva_{gasto.replace(' ','_')}", mi, anio, importe)
         c1, c2, c3 = st.columns([2, 1, 0.3])
         with c1:
@@ -711,9 +720,9 @@ with tab_bbva:
             gastos_bbva_reales[gasto] = val
         with c3:
             if st.button("🗑️", key=f"ocultar_bbva_{gasto.replace(' ','_')}_{mi}_{anio}"):
-                ocultos = _datos.get("elementos_ocultos", [])
-                if gasto not in ocultos:
-                    ocultos.append(gasto)
+                ocultos = _datos.get("elementos_ocultos", {})
+                if not isinstance(ocultos, dict): ocultos = {}
+                ocultos[gasto] = [int(anio), mi]
                 set_dato("elementos_ocultos", ocultos)
                 st.rerun()
 
@@ -821,10 +830,15 @@ GASTOS_EXTRA_DEF = {
 
 with tab_efectivo:
     total_extras = 0.0
-    _ocultos_ef = _datos.get("elementos_ocultos", [])
+    _ocultos_ef = _datos.get("elementos_ocultos", {})
+    if not isinstance(_ocultos_ef, dict): _ocultos_ef = {}
     for gasto, importe in GASTOS_EXTRA_DEF.items():
         if gasto in _ocultos_ef:
-            continue
+            _ob = _ocultos_ef[gasto]
+            if not ((int(anio) > _ob[0]) or (int(anio) == _ob[0] and mi >= _ob[1])):
+                pass
+            else:
+                continue
         val_guardado_ef, clave_ef = get_valor_historico(f"efectivo_{gasto.replace(' ','_')}", mi, anio, importe)
         c1, c2, c3 = st.columns([2, 1, 0.3])
         with c1:
@@ -838,9 +852,9 @@ with tab_efectivo:
             total_extras += val
         with c3:
             if st.button("🗑️", key=f"ocultar_ef_{gasto.replace(' ','_')}_{mi}_{anio}"):
-                ocultos = _datos.get("elementos_ocultos", [])
-                if gasto not in ocultos:
-                    ocultos.append(gasto)
+                ocultos = _datos.get("elementos_ocultos", {})
+                if not isinstance(ocultos, dict): ocultos = {}
+                ocultos[gasto] = [int(anio), mi]
                 set_dato("elementos_ocultos", ocultos)
                 st.rerun()
 
