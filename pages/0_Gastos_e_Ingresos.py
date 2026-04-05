@@ -266,7 +266,10 @@ sobres_vals = {}
 st.markdown("**Pagos anuales** - Ahorra mensualmente para no sufrir el golpe")
 todos_sobres = get_todos_sobres()
 sobres_vals = {k: 0.0 for k in SOBRES_ANUALES}  # inicializar todos a 0
+_ocultos = _datos.get("elementos_ocultos", [])
 for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
+    if nombre in _ocultos:
+        continue
     # Clave única por nombre + mes + año → busca hacia atrás si no hay dato
     anual_guardado, clave_anual = get_sobre_anual(nombre, mi, anio, anual_def, todos_sobres)
 
@@ -295,7 +298,7 @@ for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
             meses_str = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
             clave_anio_pago = f"sobre_anio_pago_{nombre.replace(' ','_')}"
             anio_pago_guardado = int(get_dato(clave_anio_pago, int(anio)))
-            cp1, cp2 = st.columns([1, 1])
+            cp1, cp2, cp3 = st.columns([1, 1, 0.4])
             with cp1:
                 mes_pago = st.selectbox("Mes", list(range(1,13)),
                                          index=mes_pago_guardado-1,
@@ -305,6 +308,14 @@ for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
                 anio_pago = st.number_input("Año", min_value=2024, max_value=2040,
                                              value=anio_pago_guardado,
                                              step=1, key=f"anio_pago_{i}_{mi}_{anio}")
+            with cp3:
+                st.write("")
+                if st.button("🗑️", key=f"ocultar_sobre_{i}_{mi}_{anio}"):
+                    ocultos = _datos.get("elementos_ocultos", [])
+                    if nombre not in ocultos:
+                        ocultos.append(nombre)
+                    set_dato("elementos_ocultos", ocultos)
+                    st.rerun()
             if mes_pago != mes_pago_guardado:
                 supabase.table("datos_app").upsert({"clave": clave_mes_pago, "valor": str(mes_pago)}).execute()
             if anio_pago != anio_pago_guardado:
@@ -676,9 +687,12 @@ with tab_bbva:
             total_tr_anuales_mes += float(anual_guardado)
             st.info(f"💰 Este mes toca pagar **{nombre_sobre}**: {anual_guardado:.2f} EUR (ahorrado en Trade Republic)")
 
+    _ocultos_bbva = _datos.get("elementos_ocultos", [])
     for gasto, importe in GASTOS_BBVA.items():
+        if gasto in _ocultos_bbva:
+            continue
         val_guardado_bbva, clave_bbva = get_valor_historico(f"bbva_{gasto.replace(' ','_')}", mi, anio, importe)
-        c1, c2 = st.columns([2, 1])
+        c1, c2, c3 = st.columns([2, 1, 0.3])
         with c1:
             st.write(gasto)
         with c2:
@@ -689,6 +703,13 @@ with tab_bbva:
                 set_dato(clave_bbva, val)
             total_fijos += val
             gastos_bbva_reales[gasto] = val
+        with c3:
+            if st.button("🗑️", key=f"ocultar_bbva_{gasto.replace(' ','_')}_{mi}_{anio}"):
+                ocultos = _datos.get("elementos_ocultos", [])
+                if gasto not in ocultos:
+                    ocultos.append(gasto)
+                set_dato("elementos_ocultos", ocultos)
+                st.rerun()
 
     key_bbva_extra = f"bbva_extra_{mi}_{anio}"
     if key_bbva_extra not in st.session_state:
@@ -794,9 +815,12 @@ GASTOS_EXTRA_DEF = {
 
 with tab_efectivo:
     total_extras = 0.0
+    _ocultos_ef = _datos.get("elementos_ocultos", [])
     for gasto, importe in GASTOS_EXTRA_DEF.items():
+        if gasto in _ocultos_ef:
+            continue
         val_guardado_ef, clave_ef = get_valor_historico(f"efectivo_{gasto.replace(' ','_')}", mi, anio, importe)
-        c1, c2 = st.columns([2, 1])
+        c1, c2, c3 = st.columns([2, 1, 0.3])
         with c1:
             st.write(gasto)
         with c2:
@@ -806,6 +830,13 @@ with tab_efectivo:
             if val != val_guardado_ef:
                 set_dato(clave_ef, val)
             total_extras += val
+        with c3:
+            if st.button("🗑️", key=f"ocultar_ef_{gasto.replace(' ','_')}_{mi}_{anio}"):
+                ocultos = _datos.get("elementos_ocultos", [])
+                if gasto not in ocultos:
+                    ocultos.append(gasto)
+                set_dato("elementos_ocultos", ocultos)
+                st.rerun()
 
     key_ge_extra = f"gastos_extra_{mi}_{anio}"
     if key_ge_extra not in st.session_state:
