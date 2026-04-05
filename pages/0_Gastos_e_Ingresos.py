@@ -394,6 +394,12 @@ if st.session_state[key_tr_extra]:
                     set_dato("tr_sobres_v2", nuevos_upd)
                     st.session_state.pop(key_tr_extra, None)
                 st.caption(f"{periodo_t}")
+                if st.button("🗑️", key=f"ocultar_tr_nuevo_{idx}_{mi}_{anio}"):
+                    ocultos = _datos.get("elementos_ocultos", [])
+                    if nombre_t not in ocultos:
+                        ocultos.append(nombre_t)
+                    set_dato("elementos_ocultos", ocultos)
+                    st.rerun()
 
             # Aviso mes anterior al pago
             if mes_pago_t:
