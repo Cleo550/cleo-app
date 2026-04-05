@@ -148,6 +148,16 @@ with col_anio:
 
 mi = MESES.index(mes_nombre) + 1
 
+# Notas del mes
+key_nota = f"nota_{mi}_{anio}"
+nota_guardada = _datos.get(key_nota, "")
+nota = st.text_area("📝 Notas del mes", value=nota_guardada, height=80,
+                     placeholder="Apunta aquí cualquier cosa sobre este mes...",
+                     key=f"textarea_nota_{mi}_{anio}",
+                     label_visibility="visible")
+if nota != nota_guardada:
+    set_dato(key_nota, nota)
+
 st.divider()
 
 # --- SECCION 1: INGRESOS ---
