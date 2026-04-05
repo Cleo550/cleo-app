@@ -692,7 +692,6 @@ with tab_bbva:
             st.info(f"💰 Este mes toca pagar **{nombre_sobre}**: {anual_guardado:.2f} EUR (ahorrado en Trade Republic)")
 
     for gasto, importe in GASTOS_BBVA.items():
-        # Comprobar baja
         val_guardado_bbva, clave_bbva = get_valor_historico(f"bbva_{gasto.replace(' ','_')}", mi, anio, importe)
         c1, c2 = st.columns([2, 1])
         with c1:
@@ -705,7 +704,8 @@ with tab_bbva:
                 set_dato(clave_bbva, val)
             total_fijos += val
             gastos_bbva_reales[gasto] = val
-        wbbva_extra = f"bbva_extra_{mi}_{anio}"
+
+    key_bbva_extra = f"bbva_extra_{mi}_{anio}"
     if key_bbva_extra not in st.session_state:
         st.session_state[key_bbva_extra] = get_dato(key_bbva_extra, [])
 
