@@ -342,9 +342,8 @@ if st.session_state[key_tr_extra]:
             nombre_t, importe_t, periodo_t, total_t, mes_pago_t = item
 
         with st.expander(f"**{nombre_t}**", expanded=True):
-            c1, c2, c3 = st.columns([2, 1, 0.3])
+            c1, c2 = st.columns([2, 1])
             with c1:
-                # Importe editable — al cambiar, actualizar en tr_sobres_v2
                 nuevo_total = st.number_input(
                     "Al año (EUR)", min_value=0.0, max_value=5000.0,
                     value=float(total_t), step=0.5,
@@ -366,7 +365,6 @@ if st.session_state[key_tr_extra]:
                             nuevos_upd.append(s)
                     set_dato("tr_sobres_v2", nuevos_upd)
                     st.session_state.pop(key_tr_extra, None)
-                    cargar_todos_datos.clear()
                 st.markdown("**Al mes**")
                 st.markdown(f"### {nuevo_mens:.2f} €")
             with c2:
@@ -384,20 +382,7 @@ if st.session_state[key_tr_extra]:
                                   if s[0]==nombre_t else s for s in sobres_upd]
                     set_dato("tr_sobres_v2", nuevos_upd)
                     st.session_state.pop(key_tr_extra, None)
-                    cargar_todos_datos.clear()
                 st.caption(f"{periodo_t}")
-            with c3:
-                st.write("")
-                st.write("")
-                if st.button("🗑️", key=f"del_tr_{idx}_{mi}_{anio}"):
-                    _nom = nombre_t
-                    sobres_g = get_dato("tr_sobres_v2", [])
-                    nuevos = [(s[0],s[1],s[2],s[3],s[4],s[5],s[6],int(anio),mi)
-                              if s[0]==_nom else s for s in sobres_g]
-                    set_dato("tr_sobres_v2", nuevos)
-                    cargar_todos_datos.clear()
-                    st.session_state.pop(key_tr_extra, None)
-                    st.rerun()
 
             # Aviso mes anterior al pago
             if mes_pago_t:
