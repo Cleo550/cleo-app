@@ -274,14 +274,6 @@ for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
     clave_mes_pago = f"sobre_mes_pago_{nombre.replace(' ','_')}"
     mes_pago_guardado = int(get_dato(clave_mes_pago, 1))
 
-    # Comprobar si este sobre tiene baja (leer directo, no desde caché)
-    clave_baja_sobre = f"sobre_baja_{nombre.replace(' ','_')}"
-    baja_sobre = get_dato(clave_baja_sobre, None)
-    if baja_sobre and isinstance(baja_sobre, (list, tuple)) and len(baja_sobre) == 2:
-        b_a, b_m = int(baja_sobre[0]), int(baja_sobre[1])
-        if (int(anio) > b_a) or (int(anio) == b_a and mi >= b_m):
-            sobres_vals[nombre] = 0.0
-            continue  # dado de baja, no mostrar
 
     with st.expander(f"**{nombre}**", expanded=True):
         c1, c2, c3 = st.columns(3)
@@ -303,7 +295,7 @@ for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
             meses_str = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
             clave_anio_pago = f"sobre_anio_pago_{nombre.replace(' ','_')}"
             anio_pago_guardado = int(get_dato(clave_anio_pago, int(anio)))
-            cp1, cp2, cp3 = st.columns([1, 1, 0.5])
+            cp1, cp2 = st.columns([1, 1])
             with cp1:
                 mes_pago = st.selectbox("Mes", list(range(1,13)),
                                          index=mes_pago_guardado-1,
@@ -313,13 +305,6 @@ for i, (nombre, (mensual_def, anual_def)) in enumerate(SOBRES_ANUALES.items()):
                 anio_pago = st.number_input("Año", min_value=2024, max_value=2040,
                                              value=anio_pago_guardado,
                                              step=1, key=f"anio_pago_{i}_{mi}_{anio}")
-            with cp3:
-                st.write("")
-                if st.button("🗑️", key=f"del_sobre_{i}_{mi}_{anio}"):
-                    set_dato(clave_baja_sobre, [int(anio), mi])
-                    cargar_todos_datos.clear()
-                    st.session_state.pop("_todos_datos", None)
-                    st.rerun()
             if mes_pago != mes_pago_guardado:
                 supabase.table("datos_app").upsert({"clave": clave_mes_pago, "valor": str(mes_pago)}).execute()
             if anio_pago != anio_pago_guardado:
@@ -708,14 +693,8 @@ with tab_bbva:
 
     for gasto, importe in GASTOS_BBVA.items():
         # Comprobar baja
-        clave_baja_bbva = f"bbva_baja_{gasto.replace(' ','_')}"
-        baja_bbva = get_dato(clave_baja_bbva, None)
-        if baja_bbva and isinstance(baja_bbva, (list, tuple)) and len(baja_bbva) == 2:
-            b_a, b_m = int(baja_bbva[0]), int(baja_bbva[1])
-            if (int(anio) > b_a) or (int(anio) == b_a and mi >= b_m):
-                continue
         val_guardado_bbva, clave_bbva = get_valor_historico(f"bbva_{gasto.replace(' ','_')}", mi, anio, importe)
-        c1, c2, c3 = st.columns([2, 1, 0.3])
+        c1, c2 = st.columns([2, 1])
         with c1:
             st.write(gasto)
         with c2:
@@ -726,14 +705,7 @@ with tab_bbva:
                 set_dato(clave_bbva, val)
             total_fijos += val
             gastos_bbva_reales[gasto] = val
-        with c3:
-            if st.button("🗑️", key=f"del_bbva_fijo_{gasto.replace(' ','_')}_{mi}_{anio}"):
-                set_dato(clave_baja_bbva, [int(anio), mi])
-                cargar_todos_datos.clear()
-                st.session_state.pop("_todos_datos", None)
-                st.rerun()
-
-    key_bbva_extra = f"bbva_extra_{mi}_{anio}"
+        wbbva_extra = f"bbva_extra_{mi}_{anio}"
     if key_bbva_extra not in st.session_state:
         st.session_state[key_bbva_extra] = get_dato(key_bbva_extra, [])
 
@@ -838,14 +810,8 @@ GASTOS_EXTRA_DEF = {
 with tab_efectivo:
     total_extras = 0.0
     for gasto, importe in GASTOS_EXTRA_DEF.items():
-        clave_baja_ef = f"ef_baja_{gasto.replace(' ','_')}"
-        baja_ef = get_dato(clave_baja_ef, None)
-        if baja_ef and isinstance(baja_ef, (list, tuple)) and len(baja_ef) == 2:
-            b_a, b_m = int(baja_ef[0]), int(baja_ef[1])
-            if (int(anio) > b_a) or (int(anio) == b_a and mi >= b_m):
-                continue
         val_guardado_ef, clave_ef = get_valor_historico(f"efectivo_{gasto.replace(' ','_')}", mi, anio, importe)
-        c1, c2, c3 = st.columns([2, 1, 0.3])
+        c1, c2 = st.columns([2, 1])
         with c1:
             st.write(gasto)
         with c2:
@@ -855,12 +821,6 @@ with tab_efectivo:
             if val != val_guardado_ef:
                 set_dato(clave_ef, val)
             total_extras += val
-        with c3:
-            if st.button("🗑️", key=f"del_ef_fijo_{gasto.replace(' ','_')}_{mi}_{anio}"):
-                set_dato(clave_baja_ef, [int(anio), mi])
-                cargar_todos_datos.clear()
-                st.session_state.pop("_todos_datos", None)
-                st.rerun()
 
     key_ge_extra = f"gastos_extra_{mi}_{anio}"
     if key_ge_extra not in st.session_state:
