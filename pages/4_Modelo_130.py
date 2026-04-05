@@ -119,18 +119,28 @@ if not meses_trim:
 
 # Cargar todos los datos de una vez
 datos = cargar_todos_datos()
-facturas = cargar_facturas_trim(trimestre_key)
+# Acumular facturas de todos los trimestres del año hasta el actual
+facturas = []
+for t in range(1, t_num + 1):
+    facturas += cargar_facturas_trim(f"T{t}_{int(anio)}")
 
 st.markdown("---")
 
-# Meses acumulados desde inicio del año (o desde el alta) hasta fin del trimestre
-# Solo los meses del trimestre actual (filtrados por fecha de alta)
-meses_acumulados = meses_trim
+# Meses acumulados desde inicio del año hasta fin del trimestre
+# T1: meses 1-3, T2: meses 1-6, T3: meses 1-9, T4: meses 1-12
+mes_fin_trimestre = meses_trim_base[-1]
+todos_meses_hasta_trim = list(range(1, mes_fin_trimestre + 1))
+if int(anio) == ALTA_ANIO:
+    meses_acumulados = [m for m in todos_meses_hasta_trim if m >= ALTA_MES]
+elif int(anio) < ALTA_ANIO:
+    meses_acumulados = []
+else:
+    meses_acumulados = todos_meses_hasta_trim
 
 # --- INGRESOS ---
 st.markdown("<h3 style='color:#FF69B4'>📥 Ingresos con factura</h3>", unsafe_allow_html=True)
 st.caption("Solo Lola y Yordhana (tienen factura legal). Ania cobra en efectivo y no cuenta.")
-st.caption(f"Meses: {', '.join([MESES[m-1] for m in meses_trim])}")
+st.caption(f"Meses acumulados: {', '.join([MESES[m-1] for m in meses_acumulados])}")
 
 total_ingresos = 0.0
 
@@ -197,7 +207,7 @@ else:
 total_gastos_ded += cuota_autonomo
 
 # 2. Facturas subidas del trimestre
-st.write(f"**Facturas de gastos subidas (T{t_num} {int(anio)}):**")
+st.write(f"**Facturas de gastos acumuladas (T1 a T{t_num} {int(anio)}):**")
 facturas_trim_total = 0.0
 adeslas_trim = 0.0
 # Solo las facturas del trimestre actual
