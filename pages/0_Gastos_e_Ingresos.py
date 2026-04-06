@@ -265,6 +265,27 @@ if _inactivos:
                         st.session_state.pop(f"confirmar_borrar_{nombre_inact}", None)
                         st.rerun()
 
+# --- SERVICIOS ÚNICOS DEL MES ---
+key_esp_mes = f"servicios_esporadicos_{mi}_{anio}"
+servicios_esp_mes = get_dato(key_esp_mes, [])
+esporadicos_total = 0.0
+if servicios_esp_mes:
+    for idx_esp, srv_esp in enumerate(servicios_esp_mes):
+        c1, c2, c3 = st.columns([3, 1, 0.5])
+        with c1:
+            fecha_esp = srv_esp.get("fechas", [""])[0] if srv_esp.get("fechas") else ""
+            st.write(f"**{srv_esp['nombre']}** · {srv_esp['horas']}h · {srv_esp['tarifa']}€/h · {fecha_esp}")
+        with c2:
+            st.write(f"**{srv_esp['importe']:.2f} EUR**")
+        with c3:
+            if st.button("🗑️", key=f"del_esp_{idx_esp}_{mi}_{anio}"):
+                servicios_esp_mes.pop(idx_esp)
+                set_dato(key_esp_mes, servicios_esp_mes)
+                st.rerun()
+        esporadicos_total += srv_esp["importe"]
+
+st.markdown("---")
+
 # --- AÑADIR NUEVO CLIENTE ---
 with st.expander("➕ Añadir nuevo cliente", expanded=False):
     st.markdown("**Datos del cliente:**")
@@ -386,7 +407,7 @@ with c3:
             st.rerun()
 
 ingresos_extra_total = sum(v for _, v in st.session_state[key_ing_extra])
-total_ingresos = sum(ingresos_reales.values()) + ingresos_extra_total
+total_ingresos = sum(ingresos_reales.values()) + ingresos_extra_total + esporadicos_total
 st.metric("Total ingresos", f"{total_ingresos:.2f} EUR")
 
 st.divider()
