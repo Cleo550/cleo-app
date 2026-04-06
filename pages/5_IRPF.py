@@ -387,14 +387,24 @@ if es_inicio != get_dato(key_inicio, False):
     set_dato(key_inicio, es_inicio)
 
 key_minimo = f"irpf_minimo_{anio}"
+# Buscar hacia atrás si no hay dato para este año
+_mp_guardado = None
+for _ay in range(int(anio), 2025, -1):
+    _v = get_dato(f"irpf_minimo_{_ay}", None)
+    if _v is not None:
+        _mp_guardado = float(_v)
+        break
+if _mp_guardado is None:
+    _mp_guardado = 6105.0
+
 minimo_personal = st.number_input(
     "Mínimo personal exento (€)",
     min_value=0.0, max_value=20000.0,
-    value=float(get_dato(key_minimo, 5550.0)),
+    value=_mp_guardado,
     step=50.0, key=f"minimo_{anio}",
-    help="Por defecto 5.550€. Puede variar si tienes hijos, discapacidad u otras circunstancias."
+    help="Se guarda para este año y se hereda en años siguientes. Cámbialo si la normativa cambia."
 )
-if minimo_personal != float(get_dato(key_minimo, 5550.0)):
+if minimo_personal != _mp_guardado:
     set_dato(key_minimo, minimo_personal)
 
 st.markdown("---")
