@@ -78,6 +78,15 @@ CLIS = {
     "Yordhana": {"t": 14.0, "h": 4.0},
 }
 
+def get_dato_directo(clave, defecto):
+    try:
+        r = supabase.table("datos_app").select("valor").eq("clave", clave).execute()
+        if r.data:
+            return json.loads(r.data[0]["valor"])
+        return defecto
+    except:
+        return defecto
+
 MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
          "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
 
@@ -139,7 +148,7 @@ else:
 
 # --- INGRESOS ---
 st.markdown("<h3 style='color:#FF69B4'>📥 Ingresos con factura</h3>", unsafe_allow_html=True)
-st.caption("Solo Lola y Yordhana (tienen factura legal). Ania cobra en efectivo y no cuenta.")
+st.caption("Clientes con factura legal. Ania y bonos no cuentan.")
 st.caption(f"Meses acumulados: {', '.join([MESES[m-1] for m in meses_acumulados])}")
 
 total_ingresos = 0.0
@@ -148,26 +157,38 @@ def dias_calendario(weekdays, mi, anio):
     c = cal_module.Calendar()
     return len([d for d, ds in c.itermonthdays2(int(anio), mi) if d != 0 and ds in weekdays])
 
+# Clientes base con factura
 CLIS_DIAS = {"Lola": [2], "Yordhana": [3]}
+
+# Añadir clientes extra con factura
+clientes_extra_130 = get_dato_directo("clientes_extra", [])
+CLIS_EXTRA_FACTURA = {}
+for ce in clientes_extra_130:
+    if ce.get("factura", False):
+        CLIS_EXTRA_FACTURA[ce["nombre"]] = {
+            "t": ce.get("tarifa", 14.0),
+            "h": ce.get("horas", 4.0),
+            "w": ce.get("dias", [])
+        }
+
+CLIS_TODOS = {**CLIS, **CLIS_EXTRA_FACTURA}
+for cn_e, cd_e in CLIS_EXTRA_FACTURA.items():
+    CLIS_DIAS[cn_e] = cd_e["w"]
 
 hoy = datetime.now()
 
-for cn, c in CLIS.items():
+for cn, c in CLIS_TODOS.items():
     ingreso_cliente = 0.0
     for mi in meses_acumulados:
-        # Si el mes ya ha pasado o es el actual, usar dato de Supabase
-        # Si es futuro, calcular del calendario
         es_pasado = (int(anio) < hoy.year) or (int(anio) == hoy.year and mi <= hoy.month)
         if es_pasado:
             num = get_dato_local(datos, f"dias_{cn}_{mi}_{anio}", None)
             if num is None:
-                # No hay dato guardado para este mes pasado → calcular del calendario
-                num_dias = dias_calendario(CLIS_DIAS[cn], mi, anio)
+                num_dias = dias_calendario(CLIS_DIAS.get(cn, []), mi, anio)
             else:
                 num_dias = int(num)
         else:
-            # Mes futuro → calcular del calendario
-            num_dias = dias_calendario(CLIS_DIAS[cn], mi, anio)
+            num_dias = dias_calendario(CLIS_DIAS.get(cn, []), mi, anio)
         ingreso_mes = num_dias * c["h"] * c["t"]
         lineas = get_dato_local(datos, f"lineas_extra_{cn}_{mi}_{anio}", [])
         for _, precio in lineas:
@@ -175,6 +196,15 @@ for cn, c in CLIS.items():
         ingreso_cliente += ingreso_mes
     total_ingresos += ingreso_cliente
     st.write(f"- **{cn}**: {ingreso_cliente:.2f} EUR")
+
+# Servicios únicos con factura (tipo "Servicio único" no tiene factura, solo Recibo)
+# Solo sumar si el servicio esporádico tiene factura=True
+for mi_ac in meses_acumulados:
+    servs_esp = get_dato_directo(f"servicios_esporadicos_{mi_ac}_{int(anio)}", [])
+    for srv in servs_esp:
+        if srv.get("factura", False):
+            total_ingresos += srv.get("importe", 0.0)
+            st.write(f"- **{srv['nombre']}** (servicio {srv.get('fechas',[''])[0]}): {srv.get('importe',0):.2f} EUR")
 
 st.metric("Total ingresos", f"{total_ingresos:.2f} EUR")
 

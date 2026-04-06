@@ -63,6 +63,15 @@ CLIS = {
     "Lola":     {"t": 14.0, "h": 4.0, "w": [2]},
     "Yordhana": {"t": 14.0, "h": 4.0, "w": [3]},
 }
+
+def get_dato_directo(clave, defecto):
+    try:
+        r = supabase.table("datos_app").select("valor").eq("clave", clave).execute()
+        if r.data:
+            return json.loads(r.data[0]["valor"])
+        return defecto
+    except:
+        return defecto
 MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
          "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
 
@@ -93,10 +102,23 @@ mes_inicio = MES_ALTA if int(anio) == ANIO_ALTA else 1
 
 # Ingresos anuales automáticos
 ingresos_anuales = 0.0
+
+# Añadir clientes extra con factura
+clientes_extra_irpf = get_dato_directo("clientes_extra", [])
+CLIS_EXTRA = {}
+for ce in clientes_extra_irpf:
+    if ce.get("factura", False):
+        CLIS_EXTRA[ce["nombre"]] = {
+            "t": ce.get("tarifa", 14.0),
+            "h": ce.get("horas", 4.0),
+            "w": ce.get("dias", [])
+        }
+CLIS_TODOS_IRPF = {**CLIS, **CLIS_EXTRA}
+
 with st.expander("📊 Ver desglose de ingresos por cliente", expanded=False):
     if int(anio) == ANIO_ALTA:
         st.caption(f"Solo desde marzo {ANIO_ALTA} (fecha de alta)")
-    for cn, c in CLIS.items():
+    for cn, c in CLIS_TODOS_IRPF.items():
         total_cliente = 0.0
         for m in range(mes_inicio, 13):
             num = get_dato(f"dias_{cn}_{m}_{anio}", None)
@@ -107,6 +129,14 @@ with st.expander("📊 Ver desglose de ingresos por cliente", expanded=False):
             total_cliente += num_dias * c["h"] * c["t"]
         st.write(f"- **{cn}**: {total_cliente:.2f} EUR")
         ingresos_anuales += total_cliente
+    # Servicios esporádicos con factura
+    for m in range(mes_inicio, 13):
+        servs = get_dato_directo(f"servicios_esporadicos_{m}_{int(anio)}", [])
+        for srv in servs:
+            if srv.get("factura", False):
+                imp = srv.get("importe", 0.0)
+                ingresos_anuales += imp
+                st.write(f"- **{srv['nombre']}** (servicio {srv.get('fechas',[''])[0]}): {imp:.2f} EUR")
 
 st.metric("Total ingresos clientes", f"{ingresos_anuales:.2f} €")
 
