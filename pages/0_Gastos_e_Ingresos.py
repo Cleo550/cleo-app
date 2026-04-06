@@ -267,48 +267,44 @@ if _inactivos:
 
 # --- AÑADIR NUEVO CLIENTE ---
 with st.expander("➕ Añadir nuevo cliente", expanded=False):
-    with st.form("form_nuevo_cliente", clear_on_submit=True):
-        st.markdown("**Datos del cliente:**")
-        c1, c2 = st.columns(2)
-        with c1:
-            nc_nombre = st.text_input("Nombre (apodo)", placeholder="Ej: María")
-        with c2:
-            nc_tipo = st.selectbox("Tipo", ["Factura", "Bono", "Servicio único"])
-        
-        c3, c4 = st.columns(2)
-        with c3:
-            nc_nombre_completo = st.text_input("Nombre completo", placeholder="Ej: María García López")
-        with c4:
-            nc_nif = st.text_input("NIF/DNI (opcional)", placeholder="Ej: 12345678A")
-        
-        c5, c6 = st.columns(2)
-        with c5:
-            nc_dir = st.text_input("Dirección (opcional)", placeholder="Ej: Calle Mayor, 5")
-        with c6:
-            nc_cp = st.text_input("Población (opcional)", placeholder="Ej: 03560 El Campello")
+    st.markdown("**Datos del cliente:**")
+    c1, c2 = st.columns(2)
+    with c1:
+        nc_nombre = st.text_input("Nombre (apodo)", placeholder="Ej: María", key="nc_nombre")
+    with c2:
+        nc_tipo = st.selectbox("Tipo", ["Factura", "Bono", "Servicio único"], key="nc_tipo")
 
-        c7, c8 = st.columns(2)
-        with c7:
-            nc_tarifa = st.number_input("Tarifa EUR/h", min_value=0.0, max_value=200.0, value=14.0, step=0.5)
-        with c8:
-            nc_horas = st.number_input("Horas por día", min_value=0.0, max_value=24.0, value=4.0, step=0.5)
+    c3, c4 = st.columns(2)
+    with c3:
+        nc_nombre_completo = st.text_input("Nombre completo", placeholder="Ej: María García López", key="nc_nombre_completo")
+    with c4:
+        nc_nif = st.text_input("NIF/DNI (opcional)", placeholder="Ej: 12345678A", key="nc_nif")
 
-        # Solo para servicio único
-        nc_fecha_srv = None
-        if nc_tipo == "Servicio único":
-            nc_fecha_srv = st.date_input("Fecha del servicio")
+    c5, c6 = st.columns(2)
+    with c5:
+        nc_dir = st.text_input("Dirección (opcional)", placeholder="Ej: Calle Mayor, 5", key="nc_dir")
+    with c6:
+        nc_cp = st.text_input("Población (opcional)", placeholder="Ej: 03560 El Campello", key="nc_cp")
 
-        # Días de la semana (solo para recurrentes)
-        nc_dias = []
-        if nc_tipo != "Servicio único":
-            DIAS_SEM = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-            nc_dias_sel = st.multiselect("Días de trabajo", DIAS_SEM)
-            nc_dias = [DIAS_SEM.index(d) for d in nc_dias_sel]
+    c7, c8 = st.columns(2)
+    with c7:
+        nc_tarifa = st.number_input("Tarifa EUR/h", min_value=0.0, max_value=200.0, value=14.0, step=0.5, key="nc_tarifa")
+    with c8:
+        nc_horas = st.number_input("Horas por día", min_value=0.0, max_value=24.0, value=4.0, step=0.5, key="nc_horas")
 
-        submitted = st.form_submit_button("💾 Guardar cliente")
-        if submitted and nc_nombre:
+    # Campos condicionales según tipo
+    nc_fecha_srv = None
+    nc_dias = []
+    if nc_tipo == "Servicio único":
+        nc_fecha_srv = st.date_input("📅 Fecha del servicio", key="nc_fecha_srv")
+    else:
+        DIAS_SEM = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+        nc_dias_sel = st.multiselect("Días de trabajo", DIAS_SEM, key="nc_dias_sel")
+        nc_dias = [DIAS_SEM.index(d) for d in nc_dias_sel]
+
+    if st.button("💾 Guardar cliente", key="btn_guardar_nuevo_cliente"):
+        if nc_nombre:
             if nc_tipo == "Servicio único":
-                # Guardar como servicio esporádico del mes actual
                 from datetime import date
                 fecha_srv = nc_fecha_srv or date.today()
                 fecha_str = fecha_srv.strftime("%d/%m/%Y")
@@ -330,9 +326,8 @@ with st.expander("➕ Añadir nuevo cliente", expanded=False):
                     "fechas": [fecha_str]
                 })
                 set_dato(key_esp, servicios_esp_act)
-                st.success(f"✅ Servicio único de {nc_nombre} guardado para {fecha_str}")
+                st.success(f"✅ Servicio de {nc_nombre} guardado para {fecha_str}")
             else:
-                # Guardar como cliente recurrente en clientes_extra
                 extras = get_dato("clientes_extra", [])
                 extras.append({
                     "nombre": nc_nombre,
@@ -346,8 +341,10 @@ with st.expander("➕ Añadir nuevo cliente", expanded=False):
                     "factura": nc_tipo == "Factura"
                 })
                 set_dato("clientes_extra", extras)
-                st.success(f"✅ Cliente {nc_nombre} añadido correctamente")
+                st.success(f"✅ Cliente {nc_nombre} añadido")
             st.rerun()
+        else:
+            st.warning("Escribe al menos el nombre del cliente")
 
 st.markdown("---")
 
