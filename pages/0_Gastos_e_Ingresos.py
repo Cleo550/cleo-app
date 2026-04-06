@@ -265,6 +265,90 @@ if _inactivos:
                         st.session_state.pop(f"confirmar_borrar_{nombre_inact}", None)
                         st.rerun()
 
+# --- AÑADIR NUEVO CLIENTE ---
+with st.expander("➕ Añadir nuevo cliente", expanded=False):
+    with st.form("form_nuevo_cliente", clear_on_submit=True):
+        st.markdown("**Datos del cliente:**")
+        c1, c2 = st.columns(2)
+        with c1:
+            nc_nombre = st.text_input("Nombre (apodo)", placeholder="Ej: María")
+        with c2:
+            nc_tipo = st.selectbox("Tipo", ["Factura", "Bono", "Servicio único"])
+        
+        c3, c4 = st.columns(2)
+        with c3:
+            nc_nombre_completo = st.text_input("Nombre completo", placeholder="Ej: María García López")
+        with c4:
+            nc_nif = st.text_input("NIF/DNI (opcional)", placeholder="Ej: 12345678A")
+        
+        c5, c6 = st.columns(2)
+        with c5:
+            nc_dir = st.text_input("Dirección (opcional)", placeholder="Ej: Calle Mayor, 5")
+        with c6:
+            nc_cp = st.text_input("Población (opcional)", placeholder="Ej: 03560 El Campello")
+
+        c7, c8 = st.columns(2)
+        with c7:
+            nc_tarifa = st.number_input("Tarifa EUR/h", min_value=0.0, max_value=200.0, value=14.0, step=0.5)
+        with c8:
+            nc_horas = st.number_input("Horas por día", min_value=0.0, max_value=24.0, value=4.0, step=0.5)
+
+        # Solo para servicio único
+        nc_fecha_srv = None
+        if nc_tipo == "Servicio único":
+            nc_fecha_srv = st.date_input("Fecha del servicio")
+
+        # Días de la semana (solo para recurrentes)
+        nc_dias = []
+        if nc_tipo != "Servicio único":
+            DIAS_SEM = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+            nc_dias_sel = st.multiselect("Días de trabajo", DIAS_SEM)
+            nc_dias = [DIAS_SEM.index(d) for d in nc_dias_sel]
+
+        submitted = st.form_submit_button("💾 Guardar cliente")
+        if submitted and nc_nombre:
+            if nc_tipo == "Servicio único":
+                # Guardar como servicio esporádico del mes actual
+                from datetime import date
+                fecha_srv = nc_fecha_srv or date.today()
+                fecha_str = fecha_srv.strftime("%d/%m/%Y")
+                mi_srv = fecha_srv.month
+                anio_srv = fecha_srv.year
+                key_esp = f"servicios_esporadicos_{mi_srv}_{anio_srv}"
+                servicios_esp_act = get_dato(key_esp, [])
+                importe_srv = nc_horas * nc_tarifa
+                servicios_esp_act.append({
+                    "nombre": nc_nombre,
+                    "nombre_completo": nc_nombre_completo,
+                    "nif": nc_nif,
+                    "dir": nc_dir,
+                    "cp": nc_cp,
+                    "horas": nc_horas,
+                    "tarifa": nc_tarifa,
+                    "importe": importe_srv,
+                    "factura": False,
+                    "fechas": [fecha_str]
+                })
+                set_dato(key_esp, servicios_esp_act)
+                st.success(f"✅ Servicio único de {nc_nombre} guardado para {fecha_str}")
+            else:
+                # Guardar como cliente recurrente en clientes_extra
+                extras = get_dato("clientes_extra", [])
+                extras.append({
+                    "nombre": nc_nombre,
+                    "nombre_completo": nc_nombre_completo,
+                    "nif": nc_nif,
+                    "dir": nc_dir,
+                    "cp": nc_cp,
+                    "tarifa": nc_tarifa,
+                    "horas": nc_horas,
+                    "dias": nc_dias,
+                    "factura": nc_tipo == "Factura"
+                })
+                set_dato("clientes_extra", extras)
+                st.success(f"✅ Cliente {nc_nombre} añadido correctamente")
+            st.rerun()
+
 st.markdown("---")
 
 # Otros ingresos
