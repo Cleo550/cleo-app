@@ -100,9 +100,13 @@ TRIMESTRES = {
 st.markdown("<h1 style='color:#2ABFBF'>Modelo 130</h1>", unsafe_allow_html=True)
 st.caption("Pago fraccionado IRPF - Estimación Directa Simplificada")
 
+# Trimestre actual por defecto
+_mes_actual = datetime.now().month
+_t_actual = (_mes_actual - 1) // 3  # 0=T1, 1=T2, 2=T3, 3=T4
+
 col1, col2 = st.columns(2)
 with col1:
-    trimestre = st.selectbox("Trimestre", list(TRIMESTRES.keys()))
+    trimestre = st.selectbox("Trimestre", list(TRIMESTRES.keys()), index=_t_actual)
 with col2:
     anio = st.number_input("Año", min_value=2024, max_value=2035,
                             value=datetime.now().year, step=1)
