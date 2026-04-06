@@ -299,6 +299,24 @@ if es_esporadico:
 else:
     # Cliente fijo — lógica original
     dias_cal = calcular_dias(c, anio, mi)
+
+    # Filtrar por fecha de inicio si es cliente extra
+    _extras_fact = get_dato("clientes_extra", [])
+    _fecha_ini_str = None
+    for _ce_f in _extras_fact:
+        if _ce_f["nombre"] == cn:
+            _fecha_ini_str = _ce_f.get("fecha_inicio")
+            break
+    if _fecha_ini_str:
+        from datetime import date as _date_f
+        try:
+            _fi_f = _date_f.fromisoformat(_fecha_ini_str)
+            if _fi_f.year == int(anio) and _fi_f.month == mi:
+                dias_cal = [d for d in dias_cal
+                            if int(d.split("/")[0]) >= _fi_f.day]
+        except:
+            pass
+
     key_dias_supabase = f"dias_{cn}_{mi}_{anio}"
     num_dias_guardado = int(get_dato(key_dias_supabase, len(dias_cal)))
     dias_defecto = dias_cal[:num_dias_guardado] if num_dias_guardado <= len(dias_cal) else dias_cal

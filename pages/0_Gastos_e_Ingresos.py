@@ -170,11 +170,42 @@ dias_trabajados = {}
 _inactivos = _datos.get("clientes_inactivos", {})
 if not isinstance(_inactivos, dict): _inactivos = {}
 
-for cliente, datos in CLIS.items():
+# Añadir clientes extra al dict CLIS
+_clientes_extra = _datos.get("clientes_extra", [])
+if not isinstance(_clientes_extra, list): _clientes_extra = []
+CLIS_COMPLETO = dict(CLIS)
+for _ce in _clientes_extra:
+    if _ce["nombre"] not in CLIS_COMPLETO:
+        CLIS_COMPLETO[_ce["nombre"]] = {
+            "t": _ce.get("tarifa", 14.0),
+            "h": _ce.get("horas", 4.0),
+            "w": _ce.get("dias", [])
+        }
+
+for cliente, datos in CLIS_COMPLETO.items():
     if cliente in _inactivos:
         continue  # no mostrar clientes dados de baja
 
+    # Obtener fecha de inicio si es cliente extra
+    _fecha_inicio_str = None
+    for _ce2 in _clientes_extra:
+        if _ce2["nombre"] == cliente:
+            _fecha_inicio_str = _ce2.get("fecha_inicio")
+            break
+
     dias_cal = calcular_dias_mes(datos, anio, mi)
+
+    # Filtrar días anteriores a la fecha de inicio en el primer mes
+    if _fecha_inicio_str:
+        from datetime import date as _date
+        try:
+            _fi = _date.fromisoformat(_fecha_inicio_str)
+            if _fi.year == int(anio) and _fi.month == mi:
+                dias_cal = [d for d in dias_cal
+                            if int(d) >= _fi.day]
+        except:
+            pass
+
     num_dias_defecto = len(dias_cal)
     key_dias = f"dias_{cliente}_{mi}_{anio}"
 
@@ -316,12 +347,15 @@ with st.expander("➕ Añadir nuevo cliente", expanded=False):
     # Campos condicionales según tipo
     nc_fecha_srv = None
     nc_dias = []
+    nc_fecha_inicio = None
     if nc_tipo == "Servicio único":
         nc_fecha_srv = st.date_input("📅 Fecha del servicio", key="nc_fecha_srv")
     else:
         DIAS_SEM = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
         nc_dias_sel = st.multiselect("Días de trabajo", DIAS_SEM, key="nc_dias_sel")
         nc_dias = [DIAS_SEM.index(d) for d in nc_dias_sel]
+        nc_fecha_inicio = st.date_input("📅 Fecha de inicio", key="nc_fecha_inicio",
+                                         help="Primer día que trabaja este cliente")
 
     if st.button("💾 Guardar cliente", key="btn_guardar_nuevo_cliente"):
         if nc_nombre:
@@ -350,6 +384,8 @@ with st.expander("➕ Añadir nuevo cliente", expanded=False):
                 st.success(f"✅ Servicio de {nc_nombre} guardado para {fecha_str}")
             else:
                 extras = get_dato("clientes_extra", [])
+                from datetime import date
+                fecha_ini = nc_fecha_inicio or date.today()
                 extras.append({
                     "nombre": nc_nombre,
                     "nombre_completo": nc_nombre_completo,
@@ -359,7 +395,8 @@ with st.expander("➕ Añadir nuevo cliente", expanded=False):
                     "tarifa": nc_tarifa,
                     "horas": nc_horas,
                     "dias": nc_dias,
-                    "factura": nc_tipo == "Factura"
+                    "factura": nc_tipo == "Factura",
+                    "fecha_inicio": fecha_ini.strftime("%Y-%m-%d")
                 })
                 set_dato("clientes_extra", extras)
                 st.success(f"✅ Cliente {nc_nombre} añadido")
