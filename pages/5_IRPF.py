@@ -373,11 +373,50 @@ st.markdown("---")
 # =====================
 st.markdown("<h2 style='color:#2ABFBF'>6. Resumen IRPF</h2>", unsafe_allow_html=True)
 
-base_general = rendimiento_actividad + total_ayudas
-base_ahorro = total_ganancias + total_capital
-base_imponible = base_general + base_ahorro - ded_total
+# --- Reducción por inicio de actividad (Art. 32.1 LIRPF) ---
+st.markdown("<h3 style='color:#FF69B4'>Reducciones aplicables</h3>", unsafe_allow_html=True)
 
-# Cálculo orientativo del IRPF (tramos 2024)
+key_inicio = f"irpf_inicio_actividad_{anio}"
+es_inicio = st.checkbox(
+    "✅ Aplicar reducción del 20% por inicio de actividad (1er o 2º año con rendimiento positivo)",
+    value=bool(get_dato(key_inicio, False)),
+    key=f"chk_inicio_{anio}",
+    help="Art. 32.1 LIRPF: autónomos en Estimación Directa que no ejercieron actividad el año anterior"
+)
+if es_inicio != get_dato(key_inicio, False):
+    set_dato(key_inicio, es_inicio)
+
+key_minimo = f"irpf_minimo_{anio}"
+minimo_personal = st.number_input(
+    "Mínimo personal exento (€)",
+    min_value=0.0, max_value=20000.0,
+    value=float(get_dato(key_minimo, 5550.0)),
+    step=50.0, key=f"minimo_{anio}",
+    help="Por defecto 5.550€. Puede variar si tienes hijos, discapacidad u otras circunstancias."
+)
+if minimo_personal != float(get_dato(key_minimo, 5550.0)):
+    set_dato(key_minimo, minimo_personal)
+
+st.markdown("---")
+
+rendimiento_neto = rendimiento_actividad + total_ayudas
+
+# Reducción 20% inicio actividad
+reduccion_inicio = 0.0
+if es_inicio and rendimiento_neto > 0:
+    reduccion_inicio = round(rendimiento_neto * 0.20, 2)
+    rendimiento_reducido = rendimiento_neto - reduccion_inicio
+    st.info(f"💡 Reducción inicio actividad (20%): -{reduccion_inicio:.2f} € → Rendimiento reducido: {rendimiento_reducido:.2f} €")
+else:
+    rendimiento_reducido = rendimiento_neto
+
+base_general = rendimiento_reducido
+base_ahorro = total_ganancias + total_capital
+
+# Mínimo personal reduce la base general
+base_liquidable_general = max(0.0, base_general - minimo_personal)
+base_imponible = base_liquidable_general + base_ahorro - ded_total
+
 def calcular_irpf(base):
     if base <= 0:
         return 0.0
@@ -397,78 +436,43 @@ a_pagar = max(0.0, irpf_bruto - mod130_pagado - total_ret_capital)
 a_devolver = max(0.0, mod130_pagado + total_ret_capital - irpf_bruto)
 
 col1, col2, col3 = st.columns(3)
-col1.metric("Base imponible", f"{base_imponible:.2f} €")
-col2.metric("IRPF estimado", f"{irpf_bruto:.2f} €")
-col3.metric("Mod.130 + Ret. ya pagados", f"{mod130_pagado + total_ret_capital:.2f} €")
+col1.metric("Rendimiento neto", f"{rendimiento_neto:.2f} €")
+col2.metric("Mínimo personal", f"{minimo_personal:.2f} €")
+col3.metric("Base liquidable", f"{base_imponible:.2f} €")
+
+st.markdown("")
+col4, col5, col6 = st.columns(3)
+col4.metric("IRPF estimado", f"{irpf_bruto:.2f} €")
+col5.metric("Mod.130 + Ret. pagados", f"{mod130_pagado + total_ret_capital:.2f} €")
+if a_pagar > 0:
+    col6.metric("🔴 A INGRESAR", f"{a_pagar:.2f} €")
+else:
+    col6.metric("🟢 A DEVOLVER", f"{a_devolver:.2f} €")
 
 if a_pagar > 0:
     st.markdown(f"<h3 style='color:red'>🔴 A INGRESAR: {a_pagar:.2f} €</h3>", unsafe_allow_html=True)
 else:
     st.markdown(f"<h3 style='color:green'>🟢 A DEVOLVER: {a_devolver:.2f} €</h3>", unsafe_allow_html=True)
 
+if base_imponible <= 0:
+    st.success("✅ Tu rendimiento no supera el mínimo personal — te devolverán todo lo pagado en Mod. 130.")
+
 st.caption("⚠️ Cálculo orientativo. El resultado final puede variar según el borrador de la AEAT.")
 
 with st.expander("📋 Casillas principales", expanded=False):
+    linea_reduccion = f"Reducción inicio actividad (20%):              -{reduccion_inicio:.2f} EUR\n" if es_inicio else ""
     st.code(f"""
 Casilla 0180 - Rendimiento actividad económica:  {rendimiento_actividad:.2f} EUR
 Casilla 0200 - Ayudas y subvenciones:            {total_ayudas:.2f} EUR
-Casilla 0300 - Ganancias patrimoniales:          {total_ganancias:.2f} EUR
+{linea_reduccion}Casilla 0300 - Ganancias patrimoniales:          {total_ganancias:.2f} EUR
 Casilla 0029 - Rendimientos capital mobiliario:  {total_capital:.2f} EUR
 Casilla 0595 - Retenciones capital mobiliario:   {total_ret_capital:.2f} EUR
 Casilla 0588 - Pagos fraccionados (Mod.130):     {mod130_pagado:.2f} EUR
-Casilla 0500 - Base imponible general:           {base_general:.2f} EUR
+Mínimo personal exento:                          {minimo_personal:.2f} EUR
+Casilla 0500 - Base liquidable general:          {base_liquidable_general:.2f} EUR
 Casilla 0510 - Base imponible ahorro:            {base_ahorro:.2f} EUR
 Casilla 0545 - Cuota íntegra estimada:           {irpf_bruto:.2f} EUR
-RESULTADO:                                       {"A INGRESAR " + str(a_pagar) if a_pagar > 0 else "A DEVOLVER " + str(a_devolver)} EUR
+RESULTADO:                                       {"A INGRESAR " + str(round(a_pagar,2)) if a_pagar > 0 else "A DEVOLVER " + str(round(a_devolver,2))} EUR
 """)
 
-st.markdown("---")
 
-# =====================
-# 7. GUÍA PASO A PASO
-# =====================
-st.markdown("<h2 style='color:#2ABFBF'>7. Cómo presentar la declaración</h2>", unsafe_allow_html=True)
-
-with st.expander("📖 Ver guía completa", expanded=False):
-    st.markdown("""
-<h3 style='color:#FF69B4'>Cuándo presentarla</h3>
-
-La campaña de la renta abre normalmente en **abril** y cierra a finales de **junio**.
-Si el resultado es **a ingresar** y quieres domiciliar el pago, el plazo cierra antes (consulta la fecha exacta cada año en la web de la AEAT).
-
-<h3 style='color:#FF69B4'>Paso 1 — Obtén el borrador</h3>
-
-1. Entra en **agenciatributaria.gob.es**
-2. Accede con **Cl@ve PIN**, certificado digital o número de referencia
-3. Pincha en **"Renta 202X · Servicio de tramitación del borrador"**
-4. Verás el borrador con los datos que la AEAT ya tiene de ti
-
-<h3 style='color:#FF69B4'>Paso 2 — Revisa y completa</h3>
-
-La AEAT no tendrá tus gastos deducibles como autónoma — **tienes que añadirlos tú**.
-Usa los datos de esta página para rellenar las casillas que faltan.
-
-<h3 style='color:#FF69B4'>Paso 3 — Añade los datos que faltan</h3>
-
-- Gastos deducibles de actividad (cuota autónomo, Adeslas, facturas)
-- Ayudas y subvenciones recibidas
-- Ganancias de Trade Republic (usa el certificado fiscal)
-- Deducciones personales
-
-<h3 style='color:#FF69B4'>Paso 4 — Confirma y presenta</h3>
-
-- Si el resultado te parece correcto, pulsa **"Confirmar borrador"**
-- Si hay que pagar, puedes domiciliar o pagar con tarjeta
-- Guarda el **justificante de presentación** en la página de Documentos
-
-<h3 style='color:#FF69B4'>Documentos que deberías tener subidos en la app</h3>
-
-Si los has subido a la app, no necesitas buscarlos — están todos en la página de Documentos. Asegúrate de tener subidos antes de presentar:
-
-- Facturas emitidas a Lola y Yordhana
-- Facturas de gastos deducibles (autónomo, Adeslas, RC...)
-- Certificado fiscal anual de Trade Republic
-- Justificantes de los 4 pagos del Mod. 130
-- Certificados de ayudas o subvenciones recibidas
-- Justificante de presentación (lo guardas después de presentar)
-""", unsafe_allow_html=True)
