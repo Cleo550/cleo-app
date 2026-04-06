@@ -166,7 +166,14 @@ st.markdown("<a name='ingresos'></a><h2 style='color:#2ABFBF'>Ingresos del mes</
 ingresos_reales = {}
 dias_trabajados = {}
 
+# Clientes inactivos — cargados de Supabase
+_inactivos = _datos.get("clientes_inactivos", {})
+if not isinstance(_inactivos, dict): _inactivos = {}
+
 for cliente, datos in CLIS.items():
+    if cliente in _inactivos:
+        continue  # no mostrar clientes dados de baja
+
     dias_cal = calcular_dias_mes(datos, anio, mi)
     num_dias_defecto = len(dias_cal)
     key_dias = f"dias_{cliente}_{mi}_{anio}"
@@ -174,7 +181,29 @@ for cliente, datos in CLIS.items():
     # Cargar valor guardado en Supabase
     valor_guardado = int(get_dato(key_dias, num_dias_defecto))
 
-    st.markdown(f"**{cliente}** · {datos['h']}h/dia · {datos['t']} EUR/h")
+    c_h1, c_h2 = st.columns([4, 0.5])
+    with c_h1:
+        st.markdown(f"**{cliente}** · {datos['h']}h/dia · {datos['t']} EUR/h")
+    with c_h2:
+        if st.button("🗑️", key=f"baja_{cliente}_{mi}_{anio}", help=f"Dar de baja a {cliente}"):
+            st.session_state[f"confirmar_baja_{cliente}"] = True
+    if st.session_state.get(f"confirmar_baja_{cliente}", False):
+        st.warning(f"¿Dar de baja a **{cliente}**? Sus datos históricos se conservan.")
+        cb1, cb2 = st.columns(2)
+        with cb1:
+            if st.button("✅ Sí, dar de baja", key=f"baja_si_{cliente}"):
+                inact = _datos.get("clientes_inactivos", {})
+                if not isinstance(inact, dict): inact = {}
+                from datetime import date
+                inact[cliente] = str(date.today())
+                set_dato("clientes_inactivos", inact)
+                st.session_state.pop(f"confirmar_baja_{cliente}", None)
+                st.rerun()
+        with cb2:
+            if st.button("Cancelar", key=f"baja_no_{cliente}"):
+                st.session_state.pop(f"confirmar_baja_{cliente}", None)
+                st.rerun()
+
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
         num_dias = st.number_input(
@@ -196,6 +225,45 @@ for cliente, datos in CLIS.items():
         st.write(f"**{total_cliente:.2f} EUR**")
     dias_trabajados[cliente] = num_dias
     ingresos_reales[cliente] = total_cliente
+
+# Clientes inactivos
+_inactivos = _datos.get("clientes_inactivos", {})
+if not isinstance(_inactivos, dict): _inactivos = {}
+if _inactivos:
+    with st.expander(f"👤 Clientes inactivos ({len(_inactivos)})"):
+        for nombre_inact, fecha_baja in list(_inactivos.items()):
+            ci1, ci2, ci3 = st.columns([2.5, 1, 1])
+            with ci1:
+                st.write(f"**{nombre_inact}** — baja desde {fecha_baja}")
+            with ci2:
+                if st.button("↩️ Reactivar", key=f"reactivar_{nombre_inact}"):
+                    inact = _datos.get("clientes_inactivos", {})
+                    if not isinstance(inact, dict): inact = {}
+                    inact.pop(nombre_inact, None)
+                    set_dato("clientes_inactivos", inact)
+                    st.rerun()
+            with ci3:
+                if st.button("🗑️ Borrar", key=f"borrar_{nombre_inact}"):
+                    st.session_state[f"confirmar_borrar_{nombre_inact}"] = True
+            if st.session_state.get(f"confirmar_borrar_{nombre_inact}", False):
+                st.error(f"⚠️ ¿Borrar **{nombre_inact}** para siempre? Esto no se puede deshacer.")
+                cb1, cb2 = st.columns(2)
+                with cb1:
+                    if st.button("✅ Sí, borrar", key=f"borrar_si_{nombre_inact}", type="primary"):
+                        inact = _datos.get("clientes_inactivos", {})
+                        if not isinstance(inact, dict): inact = {}
+                        inact.pop(nombre_inact, None)
+                        set_dato("clientes_inactivos", inact)
+                        # Borrar también de clientes_extra si existe
+                        extras = get_dato("clientes_extra", [])
+                        extras = [c for c in extras if c.get("nombre") != nombre_inact]
+                        set_dato("clientes_extra", extras)
+                        st.session_state.pop(f"confirmar_borrar_{nombre_inact}", None)
+                        st.rerun()
+                with cb2:
+                    if st.button("Cancelar", key=f"borrar_no_{nombre_inact}"):
+                        st.session_state.pop(f"confirmar_borrar_{nombre_inact}", None)
+                        st.rerun()
 
 st.markdown("---")
 
