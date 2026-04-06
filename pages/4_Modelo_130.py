@@ -249,14 +249,16 @@ st.markdown("<h3 style='color:#FF69B4'>🧮 Cálculo Modelo 130</h3>", unsafe_al
 
 beneficio = total_ingresos - total_gastos_ded
 retencion = max(0.0, beneficio * 0.20)
-# Sumar lo pagado en trimestres anteriores de este año
+# Sumar lo calculado en trimestres anteriores — leer directo de Supabase
 pagos_anteriores = 0.0
 for t in range(1, t_num):
-    pagado_t = get_dato_local(datos, f"mod130_pagado_t{t}_{int(anio)}", False)
-    if pagado_t:
-        # Recuperar el importe pagado en ese trimestre
-        importe_t = float(get_dato_local(datos, f"mod130_importe_t{t}_{int(anio)}", 0.0))
-        pagos_anteriores += importe_t
+    try:
+        r = supabase.table("datos_app").select("valor").eq(
+            "clave", f"mod130_calculado_t{t}_{int(anio)}").execute()
+        if r.data:
+            pagos_anteriores += float(json.loads(r.data[0]["valor"]))
+    except:
+        pass
 
 a_ingresar = max(0.0, retencion - pagos_anteriores)
 
